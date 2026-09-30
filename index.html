@@ -1,0 +1,3820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>Golden Pace: Daily Vitality & Wellness Tracker</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for health and activity visual trend reports -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Dexie.js for persistent IndexedDB storage without storage limits -->
+  <script src="https://cdn.jsdelivr.net/npm/dexie@3/dist/dexie.js"></script>
+  <!-- Canvas Confetti for celebratory milestone bursts -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f2f8f4',
+              100: '#e1efe6',
+              200: '#c5dfd1',
+              300: '#8fc3a7',
+              400: '#5fa383',
+              500: '#347a57',
+              600: '#286244',
+              700: '#1e4b34',
+              800: '#163827',
+              900: '#0e2419',
+            },
+            amberlead: {
+              50: '#fefbf3',
+              100: '#faecc8',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+            },
+            warmgray: {
+              50: '#fcfbfa',
+              100: '#f4f0ea',
+              200: '#e7e2d7',
+              300: '#d5cec0',
+              400: '#8a8474',
+              500: '#6b6556',
+              600: '#524e43',
+              700: '#48443b',
+              800: '#322f28',
+              900: '#1c1a16'
+            }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Strict Mobile-First Senior Ergonomics: 18px+ text, large spacing */
+    html, body {
+      background-color: #fcfbfa;
+      color: #1c1a16;
+      font-size: 18px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+
+    input, select, textarea, button {
+      font-size: 18px !important;
+      min-height: 50px;
+    }
+
+    /* Calming Diaphragmatic Breath Circle Pacer */
+    @keyframes taiChiBreatheVertical {
+      0%, 100% {
+        transform: scale(0.84);
+        opacity: 0.75;
+      }
+      50% {
+        transform: scale(1.15);
+        opacity: 1;
+      }
+    }
+
+    .animate-breath-circle {
+      animation: taiChiBreatheVertical 8s ease-in-out infinite;
+    }
+
+    /* Floating +XP Micro-animation */
+    @keyframes floatUpFade {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(0.9);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-40px) scale(1.15);
+      }
+    }
+
+    .xp-float-anim {
+      animation: floatUpFade 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      pointer-events: none;
+    }
+
+    /* Chest Shimmer & Bounce */
+    @keyframes chestWiggle {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(-6deg) scale(1.06); }
+      75% { transform: rotate(6deg) scale(1.06); }
+    }
+
+    .chest-ready {
+      animation: chestWiggle 1.4s infinite ease-in-out;
+      cursor: pointer;
+    }
+
+    /* High contrast focus ring */
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 4px solid #1e4b34;
+      outline-offset: 2px;
+    }
+
+    @media print {
+      body { background: white !important; color: black !important; font-size: 11pt !important; }
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      .report-card { break-inside: avoid; border: 1px solid #ccc !important; }
+    }
+    
+    .print-only { display: none; }
+
+    /* Respect people who ask their device for less motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-warmgray-50 text-warmgray-900 min-h-screen flex flex-col selection:bg-brand-100 selection:text-brand-900 pb-28">
+
+  <!-- Mobile Top Bar: Level, Streak, and XP Header -->
+  <header class="bg-brand-800 text-white shadow-md border-b-4 border-brand-900 sticky top-0 z-40 no-print">
+    <div class="w-full px-4 py-2.5 flex items-center justify-between">
+      <!-- Player Level & Title -->
+      <div class="flex items-center space-x-2.5 cursor-pointer" onclick="toggleTrophyModal()">
+        <div id="header-avatar" class="bg-amberlead-400 text-brand-900 rounded-2xl w-11 h-11 flex items-center justify-center font-bold text-2xl shadow-inner select-none">
+          🌱
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span id="player-level-badge" class="text-sm font-black uppercase tracking-wider bg-brand-900 text-amberlead-400 px-2 py-0.5 rounded-md border border-brand-700">Lvl 1</span>
+            <h1 id="player-title" class="text-base font-bold tracking-tight leading-tight">Gentle Seedling</h1>
+          </div>
+          <div class="flex items-center gap-2 mt-0.5">
+            <!-- Streak Flame -->
+            <span class="text-sm font-bold text-amberlead-400 flex items-center gap-1" id="streak-counter-badge">
+              🔥 <span id="streak-count">1</span> Day Streak
+            </span>
+            <span class="text-xs text-brand-200">•</span>
+            <span class="text-sm text-brand-100 font-semibold" id="xp-summary-badge">0 XP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button onclick="toggleTrophyModal()" aria-label="Trophy Showcase" class="w-11 h-11 bg-brand-900 hover:bg-black/40 text-amberlead-400 rounded-xl border border-brand-700 flex items-center justify-center relative transition">
+          <span class="text-xl">🏆</span>
+          <span id="badge-unlocked-dot" class="w-2.5 h-2.5 rounded-full bg-amberlead-400 absolute top-2 right-2 hidden"></span>
+        </button>
+
+        <button onclick="toggleAlarmModal()" aria-label="Alarms & Reminders" class="w-11 h-11 bg-brand-900 hover:bg-black/40 text-brand-100 rounded-xl border border-brand-700 flex items-center justify-center relative transition">
+          <span class="text-xl">🔔</span>
+          <span id="active-alarms-badge" class="w-2.5 h-2.5 rounded-full bg-amber-400 absolute top-2 right-2"></span>
+        </button>
+
+        <button onclick="toggleMobileNavDrawer()" aria-label="Open Navigation Menu" class="w-11 h-11 bg-brand-900 hover:bg-black/40 text-white rounded-xl border border-brand-700 flex flex-col items-center justify-center gap-1 transition">
+          <span class="w-6 h-0.5 bg-white rounded-full"></span>
+          <span class="w-6 h-0.5 bg-white rounded-full"></span>
+          <span class="w-6 h-0.5 bg-white rounded-full"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- XP Level Progress Bar Across Top -->
+    <div class="w-full bg-brand-900 h-1.5">
+      <div id="level-progress-bar" class="bg-amberlead-400 h-full transition-all duration-500" style="width: 15%"></div>
+    </div>
+  </header>
+
+  <!-- Slide-Up Navigation Menu Drawer (100% Vertical) -->
+  <div id="mobile-nav-drawer" class="fixed inset-0 bg-black/60 z-50 hidden flex-col justify-end transition-opacity">
+    <div class="bg-white rounded-t-3xl p-5 shadow-2xl max-h-[85vh] overflow-y-auto space-y-3.5 border-t-4 border-brand-600">
+      <div class="flex items-center justify-between pb-2 border-b border-warmgray-200">
+        <div>
+          <h3 class="text-lg font-bold text-warmgray-900">Menu & Destinations</h3>
+          <p class="text-sm text-warmgray-600">Easy one-touch navigation</p>
+        </div>
+        <button onclick="toggleMobileNavDrawer()" class="w-10 h-10 rounded-full bg-warmgray-100 flex items-center justify-center text-warmgray-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- Single-Column Vertical Buttons -->
+      <nav class="flex flex-col space-y-2.5" aria-label="Mobile Navigation">
+        <button onclick="switchTab('quest'); toggleMobileNavDrawer();" id="nav-btn-quest" class="w-full text-left p-3.5 rounded-2xl font-bold flex items-center gap-3 bg-brand-100 text-brand-900 border-2 border-brand-600">
+          <span class="text-2xl">⭐</span>
+          <div>
+            <span class="block text-base leading-tight">Daily Vitality Quest</span>
+            <span class="text-sm text-brand-700 font-normal">Checklist, points, streak & daily chest</span>
+          </div>
+        </button>
+
+        <button onclick="switchTab('today'); toggleMobileNavDrawer();" id="nav-btn-today" class="w-full text-left p-3.5 rounded-2xl font-bold flex items-center gap-3 bg-warmgray-100 text-warmgray-800 border border-warmgray-200">
+          <span class="text-2xl">☀️</span>
+          <div>
+            <span class="block text-base leading-tight">Guided Movement Player</span>
+            <span class="text-sm text-warmgray-600 font-normal">Chair Tai Chi, Bike & Dumbbells Routine</span>
+          </div>
+        </button>
+
+        <button onclick="switchTab('log'); toggleMobileNavDrawer();" id="nav-btn-log" class="w-full text-left p-3.5 rounded-2xl font-bold flex items-center gap-3 bg-warmgray-100 text-warmgray-800 border border-warmgray-200">
+          <span class="text-2xl">🩺</span>
+          <div>
+            <span class="block text-base leading-tight">Blood Pressure & Vitals</span>
+            <span class="text-sm text-warmgray-600 font-normal">AM/PM BP, Pulse, Weight & Meds Log</span>
+          </div>
+        </button>
+
+        <button onclick="switchTab('meals'); toggleMobileNavDrawer();" id="nav-btn-meals" class="w-full text-left p-3.5 rounded-2xl font-bold flex items-center gap-3 bg-warmgray-100 text-warmgray-800 border border-warmgray-200">
+          <span class="text-2xl">🥗</span>
+          <div>
+            <span class="block text-base leading-tight">Meals, AI Vision & Water</span>
+            <span class="text-sm text-warmgray-600 font-normal">Photo nutrition analysis & hydration counter</span>
+          </div>
+        </button>
+
+        <button onclick="switchTab('milestones'); toggleMobileNavDrawer();" id="nav-btn-milestones" class="w-full text-left p-3.5 rounded-2xl font-bold flex items-center gap-3 bg-warmgray-100 text-warmgray-800 border border-warmgray-200">
+          <span class="text-2xl">⏱️</span>
+          <div>
+            <span class="block text-base leading-tight">Functional Milestones</span>
+            <span class="text-sm text-warmgray-600 font-normal">CDC 30s Chair Stand & Balance Stopwatches</span>
+          </div>
+        </button>
+
+        <button onclick="switchTab('reports'); toggleMobileNavDrawer();" id="nav-btn-reports" class="w-full text-left p-3.5 rounded-2xl font-bold flex items-center gap-3 bg-warmgray-100 text-warmgray-800 border border-warmgray-200">
+          <span class="text-2xl">📊</span>
+          <div>
+            <span class="block text-base leading-tight">Reports & Doctor View</span>
+            <span class="text-sm text-warmgray-600 font-normal">Trends, charts & printable clinical sheet</span>
+          </div>
+        </button>
+
+        <button onclick="switchTab('library'); toggleMobileNavDrawer();" id="nav-btn-library" class="w-full text-left p-3.5 rounded-2xl font-bold flex items-center gap-3 bg-warmgray-100 text-warmgray-800 border border-warmgray-200">
+          <span class="text-2xl">📖</span>
+          <div>
+            <span class="block text-base leading-tight">Safe Guide & Tips</span>
+            <span class="text-sm text-warmgray-600 font-normal">Form cues, seat height & talk test</span>
+          </div>
+        </button>
+      </nav>
+
+      <!-- System Actions Vertical -->
+      <div class="pt-2 border-t border-warmgray-200 flex flex-col space-y-2">
+        <button onclick="toggleTrophyModal(); toggleMobileNavDrawer();" class="w-full p-3 bg-amberlead-50 text-amberlead-700 border border-amberlead-400 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
+          <span>🏆</span> View Badge Showcase & Level
+        </button>
+        <button onclick="toggleVaultModal(); toggleMobileNavDrawer();" class="w-full p-3 bg-warmgray-100 text-warmgray-900 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border border-warmgray-300">
+          <span>💾</span> Persistent Vault (IndexedDB Backup)
+        </button>
+        <button onclick="toggleApiKeyModal(); toggleMobileNavDrawer();" class="w-full p-3 bg-warmgray-100 text-warmgray-900 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border border-warmgray-300">
+          <span>⚙️</span> Gemini AI API Key Settings
+        </button>
+        <button onclick="window.print();" class="w-full p-3 bg-brand-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2">
+          <span>🖨️</span> Print Doctor Summary Sheet
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TROPHY SHELF & LEVEL MODAL (Gamification Hub) -->
+  <div id="trophy-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white rounded-3xl w-full max-w-md p-5 shadow-2xl space-y-4 border-2 border-amberlead-400 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-3xl">🏆</span>
+          <div>
+            <h3 class="text-lg font-bold text-warmgray-900">Trophy Shelf & Badges</h3>
+            <p class="text-sm text-warmgray-600">Celebrate your daily consistency</p>
+          </div>
+        </div>
+        <button onclick="toggleTrophyModal()" class="text-warmgray-500 hover:text-warmgray-900 text-3xl font-bold leading-none">&times;</button>
+      </div>
+
+      <!-- Current Rank Card -->
+      <div class="bg-gradient-to-br from-brand-700 to-brand-900 text-white p-4 rounded-2xl shadow space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-sm uppercase font-bold tracking-wider text-amberlead-400" id="modal-rank-tier">Level 1</span>
+          <span class="text-sm font-semibold text-brand-200" id="modal-xp-total">0 Total Points</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-14 h-14 rounded-2xl bg-amberlead-400 text-brand-900 flex items-center justify-center text-3xl shadow-md" id="modal-rank-icon">
+            🌱
+          </div>
+          <div>
+            <h4 class="text-xl font-black text-white leading-tight" id="modal-rank-name">Gentle Seedling</h4>
+            <p class="text-sm text-brand-100" id="modal-rank-desc">Beginning a peaceful journey of lifelong vitality.</p>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-xs text-brand-100 font-semibold mb-1">
+            <span>Next Rank: <strong id="modal-next-rank-name">Flowing Bamboo</strong></span>
+            <span id="modal-xp-to-next">150 XP needed</span>
+          </div>
+          <div class="w-full bg-brand-950 h-2.5 rounded-full overflow-hidden">
+            <div id="modal-level-bar" class="bg-amberlead-400 h-full rounded-full transition-all duration-500" style="width: 10%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Streak Status Card with Kindness Protection -->
+      <div class="bg-amberlead-50 border border-amberlead-400 p-3.5 rounded-2xl flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">🔥</span>
+          <div>
+            <h4 class="text-sm font-bold text-amberlead-700" id="modal-streak-headline">Active Streak: 1 Day</h4>
+            <p class="text-xs text-warmgray-700">Protected by <strong>Kindness Grace</strong>: Missing a day never resets you to zero!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Badges Showcase Grid -->
+      <div class="space-y-2">
+        <h4 class="text-sm font-bold text-warmgray-900 flex items-center justify-between">
+          <span>Collectible Badges</span>
+          <span class="text-sm text-warmgray-500" id="badges-unlocked-ratio">1 of 6 Unlocked</span>
+        </h4>
+        <div class="space-y-2.5" id="badges-container">
+          <!-- Dynamically populated badge cards -->
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <button onclick="toggleTrophyModal()" class="w-full bg-warmgray-200 hover:bg-warmgray-300 text-warmgray-900 font-bold py-3 rounded-xl text-base">
+          Close Showcase
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAILY REWARD CHEST CELEBRATION MODAL -->
+  <div id="chest-modal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl text-center space-y-4 border-4 border-amberlead-400 animate-bounce-once">
+      <div class="text-6xl animate-pulse" id="chest-modal-icon">🎁</div>
+      <div>
+        <span class="text-sm font-black uppercase tracking-wider text-amberlead-600 bg-amberlead-100 px-3 py-1 rounded-full">
+          Daily Vitality Quest Complete!
+        </span>
+        <h3 class="text-2xl font-black text-warmgray-900 mt-2">Treasury of Life</h3>
+      </div>
+      <p class="text-sm text-warmgray-700 leading-relaxed" id="chest-affirmation-text">
+        "Gentle, patient persistence is the supreme virtue of Tai Chi. You have shown true love to your body, heart, and spirit today."
+      </p>
+      <div class="bg-brand-50 border border-brand-200 p-3 rounded-2xl flex items-center justify-center gap-2">
+        <span class="text-2xl">⭐</span>
+        <span class="text-base font-extrabold text-brand-900">+50 Bonus Vitality Points!</span>
+      </div>
+      <button onclick="claimChestReward()" class="w-full bg-amberlead-500 hover:bg-amberlead-600 active:bg-amberlead-700 text-white font-black py-4 px-6 rounded-2xl text-lg shadow-lg">
+        Claim Reward & Keep Glowing! ✨
+      </button>
+    </div>
+  </div>
+
+  <!-- ALARM & REMINDER MODAL -->
+  <div id="alarm-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white rounded-3xl w-full max-w-md p-5 shadow-2xl space-y-4 border border-warmgray-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🔔</span>
+          <h3 class="text-lg font-bold text-warmgray-900">Daily Gentle Alarms</h3>
+        </div>
+        <button onclick="toggleAlarmModal()" class="text-warmgray-500 hover:text-warmgray-900 text-3xl font-bold leading-none">&times;</button>
+      </div>
+      <p class="text-sm text-warmgray-700 leading-relaxed">
+        Soothing harmonic chime alerts keep your morning vitals, movement, and hydration on schedule without jarring noise.
+      </p>
+      <div class="space-y-3" id="alarms-list-container">
+        <!-- Rendered via JS -->
+      </div>
+      <div class="bg-brand-50 p-3.5 rounded-2xl border border-brand-200 flex flex-col gap-2">
+        <span class="text-sm font-bold text-brand-900">Audio Chime Test:</span>
+        <button onclick="playChimeSound('alert')" class="w-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold py-2.5 rounded-xl shadow-sm">
+          🔔 Ring Test Bell
+        </button>
+      </div>
+      <div class="pt-2">
+        <button onclick="toggleAlarmModal()" class="w-full bg-warmgray-200 hover:bg-warmgray-300 text-warmgray-900 font-bold py-3 rounded-xl text-base">
+          Close Alarms
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERSISTENT VAULT (INDEXEDDB) MODAL -->
+  <div id="vault-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white rounded-3xl w-full max-w-md p-5 shadow-2xl space-y-4 border border-warmgray-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">💾</span>
+          <h3 class="text-lg font-bold text-warmgray-900">Persistent IndexedDB Vault</h3>
+        </div>
+        <button onclick="toggleVaultModal()" class="text-warmgray-500 hover:text-warmgray-900 text-3xl font-bold leading-none">&times;</button>
+      </div>
+      <p class="text-sm text-warmgray-700">
+        Your vitals, meal pictures, hydration, badges, and points are stored safely in your browser's persistent database.
+      </p>
+      <div class="bg-warmgray-50 p-4 rounded-2xl border border-warmgray-300 space-y-2">
+        <h4 class="font-bold text-sm text-warmgray-900">1. Download Vault Backup (.json)</h4>
+        <p class="text-sm text-warmgray-600">Saves your history and badges into a file on your device.</p>
+        <button onclick="exportVaultBackup()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-sm flex items-center justify-center gap-2">
+          <span>📥</span> Download Health Vault (.json)
+        </button>
+      </div>
+      <div class="bg-warmgray-50 p-4 rounded-2xl border border-warmgray-300 space-y-2">
+        <h4 class="font-bold text-sm text-warmgray-900">2. Restore from Backup File</h4>
+        <p class="text-sm text-warmgray-600">Restore your historical records from a .json file.</p>
+        <input type="file" id="restore-file-input" accept=".json" class="block w-full text-sm text-warmgray-700 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-brand-100 file:text-brand-800">
+        <button onclick="triggerRestoreBackup()" class="w-full bg-warmgray-800 hover:bg-warmgray-900 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-sm mt-2">
+          Restore Records Now
+        </button>
+      </div>
+      <div class="pt-2">
+        <button onclick="toggleVaultModal()" class="w-full bg-warmgray-200 hover:bg-warmgray-300 text-warmgray-900 font-bold py-3 rounded-xl text-sm">
+          Close Vault
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- API KEY SETTINGS MODAL -->
+  <div id="api-key-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white rounded-3xl w-full max-w-md p-5 shadow-2xl space-y-4 border border-warmgray-200">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="text-lg font-bold text-warmgray-900">Gemini AI API Key</h3>
+        <button onclick="toggleApiKeyModal()" class="text-warmgray-500 hover:text-warmgray-900 text-3xl font-bold leading-none">&times;</button>
+      </div>
+      <p class="text-sm text-warmgray-700">
+        Meal photo analysis is powered by Gemini 2.5 Flash. If you have your own personal Google AI Studio API key, you can enter it below (saved privately in your browser).
+      </p>
+      <div>
+        <label for="custom-api-key-input" class="block text-sm font-bold uppercase text-warmgray-700 mb-1">Gemini API Key</label>
+        <input type="password" id="custom-api-key-input" placeholder="AIzaSy..." class="w-full text-base p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl focus:ring-2 focus:ring-brand-500 font-mono">
+      </div>
+      <div class="flex flex-col gap-2 pt-2">
+        <button onclick="saveApiKey()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-sm">Save Key</button>
+        <button onclick="toggleApiKeyModal()" class="w-full bg-warmgray-200 hover:bg-warmgray-300 text-warmgray-800 font-bold py-2.5 rounded-xl text-sm">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION BANNER -->
+  <div id="toast-banner" class="fixed bottom-20 left-4 right-4 z-50 bg-brand-800 text-white p-4 rounded-2xl shadow-xl border border-brand-600 flex items-center gap-3 transform translate-y-24 opacity-0 transition-all duration-300 max-w-md mx-auto">
+    <span id="toast-icon" class="text-2xl flex-shrink-0">🔔</span>
+    <div class="flex-grow">
+      <h4 id="toast-title" class="font-bold text-sm">Notice</h4>
+      <p id="toast-message" class="text-sm text-brand-100">Action performed.</p>
+    </div>
+    <button onclick="hideToast()" class="text-brand-300 hover:text-white font-bold text-2xl leading-none">&times;</button>
+  </div>
+
+  <!-- MAIN VERTICAL SCROLL CONTAINER: 100% Mobile Optimized -->
+  <main class="w-full max-w-md mx-auto px-4 py-4 flex-grow flex flex-col space-y-5">
+
+    <!-- Print Only Doctor Header -->
+    <div class="print-only mb-6 border-b pb-4">
+      <h1 class="text-2xl font-bold">Golden Pace: Senior Vitality, Mobility & Nutrition Clinical Summary</h1>
+      <p class="text-sm text-gray-700">Patient Daily Record (Blood Pressure with AM/PM timing, Pulse, Weight, Joint Comfort & Diet)</p>
+      <div id="print-header-meta" class="mt-2 text-sm text-gray-600">Generated for Primary Care & Geriatric Wellness Consultation</div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SECTION: DAILY VITALITY QUEST (THE CORE GAMIFIED LOOP) -->
+    <!-- ========================================== -->
+    <section id="section-quest" class="tab-content flex flex-col space-y-4">
+      
+      <!-- Quest Overview Header Card -->
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 space-y-3 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="inline-block bg-amberlead-100 text-amberlead-700 text-sm font-black px-3 py-1 rounded-full uppercase tracking-wider">
+              Today's Vitality Quest
+            </span>
+            <h2 class="text-xl font-extrabold text-warmgray-900 leading-tight mt-1">
+              Your Daily Steps to Vitality
+            </h2>
+          </div>
+          <!-- Daily Chest Icon Trigger -->
+          <div id="daily-chest-box" onclick="handleChestClick()" class="w-16 h-16 rounded-2xl bg-amberlead-50 border-2 border-dashed border-amberlead-400 flex flex-col items-center justify-center relative cursor-pointer select-none">
+            <span id="chest-display-emoji" class="text-3xl">🔒</span>
+            <span id="chest-status-label" class="text-[9px] font-black text-amberlead-700 uppercase mt-0.5">Locked</span>
+          </div>
+        </div>
+
+        <p class="text-sm text-warmgray-600 leading-relaxed">
+          Complete your daily self-care tasks. Each step awards Vitality Points (XP) toward your next rank and keeps your health on track!
+        </p>
+
+        <!-- Quest Completion Progress Bar -->
+        <div class="space-y-1.5 pt-1">
+          <div class="flex items-center justify-between text-sm font-bold text-warmgray-800">
+            <span>Daily Completion: <strong id="quest-completion-text" class="text-brand-700">0 of 7 Done</strong></span>
+            <span id="quest-percent-badge" class="bg-brand-100 text-brand-900 px-2 py-0.5 rounded-md">0%</span>
+          </div>
+          <div class="w-full bg-warmgray-200 h-3 rounded-full overflow-hidden">
+            <div id="quest-progress-bar" class="bg-brand-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checklist Task Items (Strictly Vertical, 52px+ Touch Targets) -->
+      <div class="space-y-2.5" id="quest-checklist-container">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Quick Action / Encouragement Card -->
+      <div class="bg-brand-50 border border-brand-200 rounded-3xl p-4 flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center text-2xl flex-shrink-0">
+          💡
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-brand-900">Dr. Tai Chi Wisdom</h4>
+          <p class="text-sm text-brand-800 leading-relaxed mt-0.5" id="daily-coaching-quote">
+            "Ten minutes of gentle movement done with a relaxed smile brings more vitality than an hour done in fatigue."
+          </p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SECTION: GUIDED WORKOUT PLAYER -->
+    <!-- ========================================== -->
+    <section id="section-today" class="tab-content hidden flex flex-col space-y-4">
+      
+      <!-- Day Selector Card -->
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 space-y-3">
+        <span class="inline-block bg-brand-100 text-brand-800 text-sm font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+          Daily Routine
+        </span>
+        <h2 id="day-title" class="text-xl font-extrabold text-brand-900 leading-tight">
+          Monday: Chair Tai Chi & Breath Foundation
+        </h2>
+        <p id="day-desc" class="text-warmgray-700 text-sm leading-relaxed">
+          Upright spinal alignment, relaxed diaphragmatic breathing, and soothing shoulder arcs.
+        </p>
+
+        <!-- Vertical Scheduled Day Selector -->
+        <div class="pt-2 flex flex-col space-y-1.5">
+          <label for="routine-day-select" class="text-sm font-bold text-warmgray-700">Change Scheduled Day:</label>
+          <select id="routine-day-select" onchange="renderScheduledDay(this.value)" class="w-full font-semibold bg-warmgray-50 border border-warmgray-300 rounded-xl px-3 py-3 text-warmgray-900 focus:ring-2 focus:ring-brand-500">
+            <option value="1">Monday - Chair Tai Chi & Breath</option>
+            <option value="2">Tuesday - Gentle Stationary Bike Spin</option>
+            <option value="3">Wednesday - Seated Dumbbell Strength</option>
+            <option value="4">Thursday - Chair Tai Chi Spine Mobility</option>
+            <option value="5">Friday - Light Cardio Bike & Flush</option>
+            <option value="6">Saturday - Gentle Flexibility & Shoulders</option>
+            <option value="0">Sunday - Rest & Guided Breathing</option>
+          </select>
+        </div>
+
+        <!-- Vertical Metric Badges -->
+        <div class="flex flex-col space-y-2 pt-2 border-t border-warmgray-100">
+          <div class="bg-brand-50 p-3 rounded-xl border border-brand-100 flex items-center justify-between">
+            <span class="text-sm font-bold text-brand-700 uppercase">Target Time</span>
+            <span id="stat-target-time" class="text-base font-bold text-brand-900">15 Minutes</span>
+          </div>
+          <div class="bg-brand-50 p-3 rounded-xl border border-brand-100 flex items-center justify-between">
+            <span class="text-sm font-bold text-brand-700 uppercase">Intensity</span>
+            <span id="stat-intensity" class="text-base font-bold text-brand-900">Gentle (2/5)</span>
+          </div>
+          <div class="bg-brand-50 p-3 rounded-xl border border-brand-100 flex items-center justify-between">
+            <span class="text-sm font-bold text-brand-700 uppercase">Equipment</span>
+            <span id="stat-equip" class="text-base font-bold text-brand-900">Sturdy Chair</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guided Exercise Player: Stacked Vertically -->
+      <div class="bg-white rounded-3xl shadow-sm border border-warmgray-200 overflow-hidden flex flex-col">
+        <div class="bg-brand-700 text-white p-4 flex items-center justify-between">
+          <span class="font-bold text-base">Guided Exercise Player</span>
+          <span id="guide-step-counter" class="text-sm font-bold bg-brand-900 px-3 py-1.5 rounded-xl text-amberlead-400">Step 1 of 4</span>
+        </div>
+
+        <div class="p-4 flex flex-col space-y-4">
+          <!-- Animated Visual Diagram Container -->
+          <div class="bg-brand-50/70 border border-brand-100 rounded-2xl p-3 flex flex-col items-center justify-center min-h-[220px]">
+            <div id="exercise-svg-container" class="w-full flex justify-center items-center py-1">
+              <!-- Dynamically injected SVG illustration -->
+            </div>
+            
+            <!-- Breathing Pacer Circle -->
+            <div id="breathing-cue-box" class="w-full mt-3 bg-white/95 border border-brand-200 rounded-xl p-3 flex items-center justify-center gap-3 shadow-sm">
+              <div class="w-7 h-7 rounded-full bg-brand-600 animate-breath-circle flex-shrink-0"></div>
+              <span id="breathing-text" class="text-sm font-bold text-brand-900">
+                Inhale gently through nose (expand abdomen)...
+              </span>
+            </div>
+          </div>
+
+          <!-- Step Details -->
+          <div class="space-y-2">
+            <span id="guide-category-tag" class="text-sm font-bold uppercase tracking-wider text-brand-700 bg-brand-100 px-2.5 py-0.5 rounded-lg inline-block">
+              Tai Chi Foundation
+            </span>
+            <h4 id="guide-exercise-title" class="text-lg font-bold text-warmgray-900">
+              Seated Breathing & Torso Lengthening
+            </h4>
+            <p id="guide-exercise-desc" class="text-sm text-warmgray-700 leading-relaxed">
+              Sit near the front half of your chair with feet flat on the floor. Inhale slowly through your nose, imagining a thread gently drawing the top of your head toward the ceiling.
+            </p>
+          </div>
+
+          <!-- Senior Coach Key Tip -->
+          <div class="bg-warmgray-100 rounded-2xl p-3.5 border-l-4 border-brand-600 space-y-1">
+            <span class="font-bold text-sm text-warmgray-900 block">Coach Form Tip:</span>
+            <p id="guide-coach-tip" class="text-sm text-warmgray-700 leading-relaxed">
+              Keep shoulders relaxed away from ears. Never force range of motion—stay well within your comfortable 70% limit.
+            </p>
+          </div>
+
+          <!-- Timer & Controls -->
+          <div class="flex flex-col items-center justify-center bg-warmgray-50 p-4 rounded-2xl border border-warmgray-200 space-y-3">
+            <div class="text-4xl font-mono font-black text-brand-900 tracking-wider" id="timer-display">
+              02:00
+            </div>
+            
+            <button id="timer-toggle-btn" onclick="toggleTimer()" class="w-full bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-bold py-3.5 px-6 rounded-2xl text-lg shadow-sm transition flex items-center justify-center gap-2">
+              <span id="timer-btn-icon">▶</span> <span id="timer-btn-text">Start Timer</span>
+            </button>
+
+            <button onclick="resetTimer()" class="text-warmgray-700 hover:text-warmgray-900 underline text-sm font-semibold py-1">
+              Reset Timer
+            </button>
+          </div>
+
+          <!-- Complete Step Button -->
+          <button onclick="markCurrentStepDone()" id="btn-complete-step" class="w-full bg-warmgray-100 hover:bg-brand-50 border-2 border-brand-200 text-brand-800 font-bold py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition text-sm">
+            <span id="step-check-icon">⚪</span> Mark this step completed (+15 XP)
+          </button>
+
+          <!-- Step Navigation: Back & Next -->
+          <div class="flex items-center gap-2 pt-1">
+            <button id="guide-prev-btn" onclick="guidePrevStep()" class="flex-1 bg-warmgray-200 hover:bg-warmgray-300 text-warmgray-900 py-3 rounded-xl font-bold text-sm">
+              ← Previous
+            </button>
+            <button id="guide-next-btn" onclick="guideNextStep()" class="flex-1 bg-brand-700 hover:bg-brand-800 text-white py-3 rounded-xl font-bold text-sm">
+              Next Step →
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SECTION: DAILY VITALS & MEDS -->
+    <!-- ========================================== -->
+    <section id="section-log" class="tab-content hidden flex flex-col space-y-4">
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-warmgray-200">
+          <div>
+            <h2 class="text-xl font-bold text-warmgray-900">Record Daily Vitals & Meds</h2>
+            <p class="text-sm text-warmgray-600">Track blood pressure, pulse, medication, and comfort</p>
+          </div>
+          <span class="text-2xl">🩺</span>
+        </div>
+
+        <form id="daily-log-form" onsubmit="handleLogSubmit(event)" class="flex flex-col space-y-4">
+          
+          <div class="flex flex-col space-y-3">
+            <div>
+              <label for="log-date" class="block font-bold text-sm text-warmgray-900 mb-1">Entry Date</label>
+              <input type="date" id="log-date" required class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl focus:ring-2 focus:ring-brand-500 font-medium">
+            </div>
+
+            <div>
+              <label for="log-time" class="block font-bold text-sm text-warmgray-900 mb-1">Time of Measurement</label>
+              <input type="time" id="log-time" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl focus:ring-2 focus:ring-brand-500 font-medium">
+            </div>
+
+            <div>
+              <label for="log-bp-context" class="block font-bold text-sm text-warmgray-900 mb-1">Measurement Timing Context</label>
+              <select id="log-bp-context" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl focus:ring-2 focus:ring-brand-500 font-semibold text-sm">
+                <option value="Morning (pre-meds)" selected>Morning (pre-meds)</option>
+                <option value="Morning (post-meds)">Morning (post-meds)</option>
+                <option value="Afternoon">Afternoon</option>
+                <option value="Evening / Bedtime">Evening / Bedtime</option>
+                <option value="Post-exercise">Post-exercise (30 min rest)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Blood Pressure & Pulse -->
+          <div class="bg-warmgray-50 p-4 rounded-2xl border border-warmgray-200 flex flex-col space-y-3">
+            <h3 class="text-sm font-bold text-brand-900 flex items-center justify-between">
+              <span>❤️ Blood Pressure & Pulse</span>
+              <span class="text-xs bg-warmgray-200 text-warmgray-800 px-2 py-0.5 rounded font-bold">AHA Standard</span>
+            </h3>
+
+            <div>
+              <label for="bp-systolic" class="block font-bold text-sm text-warmgray-800 mb-1">
+                Systolic (Top #) <span class="text-xs font-normal text-warmgray-600">mmHg</span>
+              </label>
+              <input type="number" id="bp-systolic" min="70" max="250" placeholder="e.g. 122" required oninput="evaluateBPLive()" class="w-full text-2xl font-bold p-3 bg-white border border-warmgray-300 rounded-xl text-center focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <div>
+              <label for="bp-diastolic" class="block font-bold text-sm text-warmgray-800 mb-1">
+                Diastolic (Bottom #) <span class="text-xs font-normal text-warmgray-600">mmHg</span>
+              </label>
+              <input type="number" id="bp-diastolic" min="40" max="150" placeholder="e.g. 78" required oninput="evaluateBPLive()" class="w-full text-2xl font-bold p-3 bg-white border border-warmgray-300 rounded-xl text-center focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <div>
+              <label for="bp-pulse" class="block font-bold text-sm text-warmgray-800 mb-1">
+                Resting Heart Rate <span class="text-xs font-normal text-warmgray-600">BPM</span>
+              </label>
+              <input type="number" id="bp-pulse" min="40" max="180" placeholder="e.g. 68" class="w-full text-2xl font-bold p-3 bg-white border border-warmgray-300 rounded-xl text-center focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <div id="bp-indicator-box" class="p-3 rounded-xl bg-white border border-warmgray-300 flex flex-col items-center justify-center gap-1 text-center">
+              <span class="text-sm font-semibold text-warmgray-600">BP Category:</span>
+              <span id="bp-indicator-pill" class="text-sm font-bold px-3 py-1 rounded-full bg-warmgray-100 text-warmgray-700">
+                Enter numbers above
+              </span>
+            </div>
+          </div>
+
+          <!-- Medication Checklist -->
+          <div class="bg-warmgray-50 p-4 rounded-2xl border border-warmgray-200 flex flex-col space-y-2">
+            <h3 class="text-sm font-bold text-brand-900 flex items-center gap-1.5">
+              <span>💊</span> Daily Medication Checklist
+            </h3>
+            
+            <label class="flex items-center p-3 bg-white rounded-xl border border-warmgray-300 cursor-pointer">
+              <input type="checkbox" id="meds-morning" class="w-6 h-6 text-brand-600 rounded">
+              <span class="ml-3 text-sm font-semibold text-warmgray-800">Morning Prescriptions / BP Meds Taken</span>
+            </label>
+            
+            <label class="flex items-center p-3 bg-white rounded-xl border border-warmgray-300 cursor-pointer">
+              <input type="checkbox" id="meds-evening" class="w-6 h-6 text-brand-600 rounded">
+              <span class="ml-3 text-sm font-semibold text-warmgray-800">Evening Prescriptions Taken</span>
+            </label>
+          </div>
+
+          <!-- Sleep Rating -->
+          <div class="bg-warmgray-50 p-4 rounded-2xl border border-warmgray-200 flex flex-col space-y-2">
+            <h3 class="text-sm font-bold text-brand-900 flex items-center gap-1.5">
+              <span>😴</span> Sleep & Restfulness
+            </h3>
+            <select id="log-sleep-rating" class="w-full text-sm p-3 bg-white border border-warmgray-300 rounded-xl focus:ring-2 focus:ring-brand-500 font-semibold">
+              <option value="5">⭐⭐⭐⭐⭐ Deep, Restful Sleep</option>
+              <option value="4" selected>⭐⭐⭐⭐ Good Sleep (Comfortable)</option>
+              <option value="3">⭐⭐⭐ Fair Sleep (Woke up 1-2x)</option>
+              <option value="2">⭐⭐ Restless Sleep</option>
+              <option value="1">⭐ Poor Sleep (Fatigued)</option>
+            </select>
+          </div>
+
+          <!-- Body Weight -->
+          <div class="bg-warmgray-50 p-4 rounded-2xl border border-warmgray-200 flex flex-col space-y-2">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-brand-900 flex items-center gap-1.5">
+                <span>⚖️</span> Body Weight
+              </h3>
+              <div class="inline-flex rounded-xl bg-warmgray-200 p-0.5 text-sm font-bold">
+                <button type="button" onclick="setWeightUnit('lbs')" id="btn-unit-lbs" class="px-3 py-1 rounded-lg bg-white shadow-sm text-brand-800">lbs</button>
+                <button type="button" onclick="setWeightUnit('kg')" id="btn-unit-kg" class="px-3 py-1 rounded-lg text-warmgray-700">kg</button>
+              </div>
+            </div>
+
+            <input type="number" step="0.1" id="body-weight" placeholder="e.g. 168.0" class="w-full text-2xl font-bold p-3 bg-white border border-warmgray-300 rounded-xl text-center focus:ring-2 focus:ring-brand-500">
+          </div>
+
+          <!-- Exercise Completed Checkboxes -->
+          <div class="bg-warmgray-50 p-4 rounded-2xl border border-warmgray-200 flex flex-col space-y-2">
+            <h3 class="text-sm font-bold text-brand-900 flex items-center gap-1.5">
+              <span>🚴</span> Exercise Completed Today
+            </h3>
+
+            <label class="flex items-center p-3 bg-white rounded-xl border border-warmgray-300 cursor-pointer">
+              <input type="checkbox" id="log-check-taichi" class="w-6 h-6 text-brand-600 rounded">
+              <span class="ml-3 font-semibold text-sm">Chair Tai Chi</span>
+            </label>
+
+            <label class="flex items-center p-3 bg-white rounded-xl border border-warmgray-300 cursor-pointer">
+              <input type="checkbox" id="log-check-bike" class="w-6 h-6 text-brand-600 rounded">
+              <span class="ml-3 font-semibold text-sm">Stationary Bike</span>
+            </label>
+
+            <label class="flex items-center p-3 bg-white rounded-xl border border-warmgray-300 cursor-pointer">
+              <input type="checkbox" id="log-check-weights" class="w-6 h-6 text-brand-600 rounded">
+              <span class="ml-3 font-semibold text-sm">Light Dumbbells</span>
+            </label>
+
+            <div class="pt-2">
+              <label for="log-duration" class="block font-bold text-sm text-warmgray-800 mb-1">Total Exercise Minutes</label>
+              <input type="number" id="log-duration" min="0" max="180" placeholder="e.g. 15" class="w-full p-3 bg-white border border-warmgray-300 rounded-xl font-bold text-center">
+            </div>
+
+            <div>
+              <label for="log-joint-status" class="block font-bold text-sm text-warmgray-800 mb-1">Joint Comfort / Sensation Flag</label>
+              <select id="log-joint-status" class="w-full text-sm p-3 bg-white border border-warmgray-300 rounded-xl focus:ring-2 focus:ring-brand-500 font-semibold">
+                <option value="Joints Felt Great & Loose" selected>🟢 Joints Felt Great & Loose</option>
+                <option value="Mild Knee Stiffness">🟡 Mild Knee Stiffness (Adjust Bike)</option>
+                <option value="Shoulder Tightness">🟡 Shoulder Tightness (Keep Weights Low)</option>
+                <option value="Lower Back Fatigue">🟡 Lower Back Fatigue</option>
+                <option value="Rest Day / Fully Recharged">⚪ Rest Day / Recharged</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="log-notes" class="block font-bold text-sm text-warmgray-800 mb-1">Notes / Physician Observations</label>
+              <input type="text" id="log-notes" placeholder="e.g. Steady rhythm on bike; relaxed breathing." class="w-full text-sm p-3 bg-white border border-warmgray-300 rounded-xl">
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="flex flex-col space-y-2 pt-2">
+            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-4 rounded-2xl text-lg shadow-md transition">
+              💾 Save Entry to Vault (+30 XP)
+            </button>
+            <button type="button" onclick="loadSampleBaseline()" class="w-full text-warmgray-700 hover:text-brand-800 text-sm font-semibold underline py-2 text-center">
+              Reload Sample Baseline Records
+            </button>
+          </div>
+
+          <div id="save-notification" class="hidden p-3 rounded-2xl bg-brand-100 text-brand-900 border border-brand-300 text-sm font-bold text-center">
+            ✅ Daily vitals successfully saved to your persistent IndexedDB database!
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SECTION: MEALS & WATER TRACKER -->
+    <!-- ========================================== -->
+    <section id="section-meals" class="tab-content hidden flex flex-col space-y-4">
+      
+      <!-- Hydration Card -->
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 flex flex-col space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-warmgray-100">
+          <div>
+            <h2 class="text-lg font-bold text-warmgray-900 flex items-center gap-1.5">
+              <span>💧</span> Daily Hydration Pacer
+            </h2>
+            <p class="text-sm text-warmgray-600">Goal: 8 Cups (64 oz)</p>
+          </div>
+          <div class="text-2xl font-black text-blue-900" id="water-cup-count">0 / 8</div>
+        </div>
+
+        <div class="w-full bg-blue-100 h-3 rounded-full overflow-hidden">
+          <div id="water-progress-bar" class="bg-blue-600 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <label class="block text-sm font-bold text-warmgray-700 pt-1">Tap Glass to Mark Drunk:</label>
+        <div id="water-glasses-row" class="grid grid-cols-4 gap-2">
+          <!-- Rendered via JS -->
+        </div>
+
+        <div class="flex flex-col space-y-1.5 pt-2">
+          <span class="text-sm font-bold text-warmgray-600">Quick Drink Type:</span>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="logBeverage('Water')" class="p-2.5 bg-blue-50 text-blue-900 rounded-xl border border-blue-200 font-bold text-sm">Pure Water</button>
+            <button onclick="logBeverage('Herbal Tea')" class="p-2.5 bg-emerald-50 text-emerald-900 rounded-xl border border-emerald-200 font-bold text-sm">Herbal Tea</button>
+            <button onclick="logBeverage('Warm Broth')" class="p-2.5 bg-amber-50 text-amber-900 rounded-xl border border-amber-200 font-bold text-sm">Low-Na Broth</button>
+            <button onclick="logBeverage('Decaf Coffee')" class="p-2.5 bg-stone-50 text-stone-900 rounded-xl border border-stone-200 font-bold text-sm">Decaf Coffee</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meal Photo & AI Logger Card -->
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 flex flex-col space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-warmgray-100">
+          <div>
+            <h2 class="text-lg font-bold text-warmgray-900 flex items-center gap-1.5">
+              <span>📷</span> AI Meal Nutrition Analyzer
+            </h2>
+            <p class="text-sm text-warmgray-600">Powered by Gemini 2.5 Flash</p>
+          </div>
+        </div>
+
+        <form id="meal-logger-form" onsubmit="handleMealSubmit(event)" class="flex flex-col space-y-3">
+          
+          <div id="image-drop-area" onclick="document.getElementById('meal-image-input').click()" class="border-2 border-dashed border-warmgray-300 hover:border-brand-500 rounded-2xl p-4 text-center cursor-pointer bg-warmgray-50 flex flex-col items-center justify-center min-h-[160px]">
+            <input type="file" id="meal-image-input" accept="image/*" class="hidden" onchange="handleImageSelection(event)">
+            
+            <div id="upload-prompt-view" class="space-y-1">
+              <div class="text-3xl">📸</div>
+              <p class="text-sm font-bold text-warmgray-800">Tap to Take Photo or Upload</p>
+              <p class="text-sm text-warmgray-600">Captures directly from phone camera</p>
+            </div>
+
+            <div id="upload-preview-view" class="hidden w-full relative">
+              <img id="meal-preview-img" alt="Meal Preview" class="max-h-48 w-auto mx-auto rounded-xl object-contain border border-warmgray-200">
+              <button type="button" onclick="event.stopPropagation(); clearMealImage();" class="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow">✕</button>
+            </div>
+          </div>
+
+          <div>
+            <label for="meal-type-select" class="block font-bold text-sm text-warmgray-800 mb-1">Meal Occasion</label>
+            <select id="meal-type-select" class="w-full text-sm p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl focus:ring-2 focus:ring-brand-500 font-semibold">
+              <option value="Breakfast">Breakfast 🍳</option>
+              <option value="Lunch" selected>Lunch 🥗</option>
+              <option value="Dinner">Dinner 🍲</option>
+              <option value="Snack / Drink">Snack / Beverage 🍎</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="meal-time-input" class="block font-bold text-sm text-warmgray-800 mb-1">Time of Meal</label>
+            <input type="time" id="meal-time-input" class="w-full text-sm p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl focus:ring-2 focus:ring-brand-500 font-semibold">
+          </div>
+
+          <div>
+            <label for="meal-desc-input" class="block font-bold text-sm text-warmgray-800 mb-1">
+              Description or Ingredients <span class="text-xs font-normal text-warmgray-600">(Optional if photo shows it)</span>
+            </label>
+            <textarea id="meal-desc-input" rows="2" placeholder="e.g. Poached salmon, steamed broccoli, brown rice, olive oil." class="w-full text-sm p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl focus:ring-2 focus:ring-brand-500"></textarea>
+          </div>
+
+          <button type="submit" id="btn-analyze-meal" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 px-4 rounded-xl text-base shadow-sm transition flex items-center justify-center gap-2">
+            <span>✨</span> <span id="analyze-btn-text">Analyze Meal with Gemini AI (+40 XP)</span>
+          </button>
+          
+          <button type="button" onclick="loadSampleMeal()" class="text-sm text-center text-warmgray-600 underline py-1">
+            Try Sample Healthy Senior Plate
+          </button>
+        </form>
+
+        <!-- AI Result Box -->
+        <div id="ai-result-container" class="hidden pt-3 border-t border-warmgray-200">
+          <div class="bg-brand-50 border border-brand-200 rounded-2xl p-4 space-y-3">
+            <div class="flex flex-col space-y-1">
+              <h3 class="text-base font-bold text-brand-900" id="ai-meal-title">Salmon with Steamed Greens</h3>
+              <div id="ai-sodium-badge" class="px-2.5 py-0.5 rounded-full text-sm font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 inline-block w-fit">
+                Low Sodium (Heart Safe)
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="bg-white p-2 rounded-xl border border-brand-100">
+                <span class="text-xs text-warmgray-600 font-bold block">Calories</span>
+                <span id="ai-macro-cal" class="text-sm font-black text-warmgray-900">420 kcal</span>
+              </div>
+              <div class="bg-white p-2 rounded-xl border border-brand-100">
+                <span class="text-xs text-warmgray-600 font-bold block">Protein</span>
+                <span id="ai-macro-protein" class="text-sm font-black text-emerald-700">32 g</span>
+              </div>
+              <div class="bg-white p-2 rounded-xl border border-brand-100">
+                <span class="text-xs text-warmgray-600 font-bold block">Fiber</span>
+                <span id="ai-macro-fiber" class="text-sm font-black text-emerald-700">5 g</span>
+              </div>
+            </div>
+
+            <div class="bg-white p-3 rounded-xl border border-brand-100 space-y-1">
+              <h4 class="text-sm font-bold text-warmgray-900">Cardiovascular & Blood Pressure Impact:</h4>
+              <p id="ai-heart-notes" class="text-sm text-warmgray-700 leading-relaxed"></p>
+            </div>
+
+            <div class="bg-warmgray-100 p-3 rounded-xl border-l-4 border-brand-600">
+              <span class="text-xs font-bold uppercase text-brand-800 block">Dietitian Senior Tip:</span>
+              <p id="ai-senior-tip" class="text-sm text-warmgray-800 mt-0.5 leading-relaxed"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Meals List -->
+        <div class="pt-3 border-t border-warmgray-200">
+          <h3 class="text-base font-bold text-warmgray-900 mb-2 flex items-center justify-between">
+            <span>Recent Meal Log</span>
+            <span class="text-sm font-normal text-warmgray-500" id="meal-count-badge">0 meals</span>
+          </h3>
+          <div id="meals-history-container" class="space-y-2">
+            <!-- Dynamically populated meal cards -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SECTION: FUNCTIONAL MILESTONES -->
+    <!-- ========================================== -->
+    <section id="section-milestones" class="tab-content hidden flex flex-col space-y-4">
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 space-y-2">
+        <h2 class="text-xl font-bold text-warmgray-900">Functional Aging Milestones</h2>
+        <p class="text-sm text-warmgray-600 leading-relaxed">
+          Standard CDC senior mobility checks to measure real-world balance and leg power over time.
+        </p>
+      </div>
+
+      <!-- 30-Second Chair Stand Card -->
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 flex flex-col space-y-3">
+        <div class="flex items-center justify-between border-b pb-2">
+          <div>
+            <span class="text-xs font-bold uppercase text-amberlead-700 bg-amberlead-50 px-2 py-0.5 rounded border border-amberlead-200">
+              CDC Fall Prevention Standard
+            </span>
+            <h3 class="text-base font-bold text-warmgray-900 mt-1">30-Second Chair Stand</h3>
+          </div>
+          <span class="text-2xl">🪑</span>
+        </div>
+
+        <p class="text-sm text-warmgray-700 leading-relaxed">
+          Sit on your chair with arms across chest. Tap start and count how many times you can stand up fully and sit back down safely in 30 seconds.
+        </p>
+
+        <div class="bg-warmgray-50 p-4 rounded-2xl border border-warmgray-200 flex flex-col items-center space-y-3">
+          <div class="text-center">
+            <span class="text-xs font-bold text-warmgray-600 uppercase block">Time Remaining</span>
+            <span id="chair-test-timer" class="text-4xl font-mono font-black text-brand-900">30s</span>
+          </div>
+
+          <div class="text-center">
+            <span class="text-xs font-bold text-warmgray-600 uppercase block">Repetitions</span>
+            <div class="flex items-center justify-center gap-3 mt-1">
+              <button onclick="decrementChairReps()" class="w-10 h-10 rounded-full bg-warmgray-200 font-bold text-xl active:bg-warmgray-300">-</button>
+              <span id="chair-test-reps" class="text-3xl font-mono font-black text-amberlead-700">0</span>
+              <button onclick="incrementChairReps()" class="w-10 h-10 rounded-full bg-brand-600 hover:bg-brand-700 text-white font-bold text-xl active:bg-brand-800">+</button>
+            </div>
+          </div>
+
+          <button id="btn-chair-test-start" onclick="toggleChairTest()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-sm transition">
+            Start 30s Test
+          </button>
+          
+          <button onclick="saveChairTestRecord()" class="w-full bg-warmgray-800 hover:bg-warmgray-900 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-sm">
+            Save Reps to Vault (+30 XP)
+          </button>
+        </div>
+
+        <div class="text-xs text-warmgray-600 bg-amberlead-50 p-2.5 rounded-xl border border-amberlead-200">
+          <strong>CDC Norms for 70–74 Years:</strong> Men: 12–17 stands | Women: 10–15 stands.
+        </div>
+      </div>
+
+      <!-- Single-Leg Balance Card -->
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 flex flex-col space-y-3">
+        <div class="flex items-center justify-between border-b pb-2">
+          <div>
+            <span class="text-xs font-bold uppercase text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              Neurological Balance Test
+            </span>
+            <h3 class="text-base font-bold text-warmgray-900 mt-1">Single-Leg Balance</h3>
+          </div>
+          <span class="text-2xl">⚖️️</span>
+        </div>
+
+        <p class="text-sm text-warmgray-700 leading-relaxed">
+          Stand next to your chair back. Lift one foot 2 inches off the floor. Keep fingertips near the chair for safety.
+        </p>
+
+        <div class="bg-warmgray-50 p-4 rounded-2xl border border-warmgray-200 flex flex-col items-center space-y-3">
+          <div class="text-center">
+            <span class="text-xs font-bold text-warmgray-600 uppercase block">Balance Duration</span>
+            <span id="balance-test-timer" class="text-4xl font-mono font-black text-brand-900">0.0s</span>
+          </div>
+
+          <select id="balance-leg-select" class="w-full text-sm font-bold bg-white border border-warmgray-300 rounded-xl p-2.5 text-center">
+            <option value="Left Leg">Left Leg</option>
+            <option value="Right Leg">Right Leg</option>
+          </select>
+
+          <button id="btn-balance-start" onclick="toggleBalanceTest()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-sm shadow-sm transition">
+            Start Balance Stopwatch
+          </button>
+
+          <button onclick="saveBalanceTestRecord()" class="w-full bg-warmgray-800 hover:bg-warmgray-900 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow-sm">
+            Save Balance Time (+30 XP)
+          </button>
+        </div>
+      </div>
+
+      <!-- Milestone History -->
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 flex flex-col space-y-2">
+        <h3 class="text-sm font-bold text-warmgray-900">Milestone Test History</h3>
+        <div id="milestones-history-list" class="space-y-2 text-sm">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SECTION: REPORTS & DOCTOR VIEW -->
+    <!-- ========================================== -->
+    <section id="section-reports" class="tab-content hidden flex flex-col space-y-4">
+      
+      <!-- KPI Metric Summary Stacked Vertically -->
+      <div class="flex flex-col space-y-2.5">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-warmgray-200 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-brand-700 uppercase block">Active Sessions (7-Day)</span>
+            <div class="flex items-baseline gap-1 mt-0.5">
+              <span id="kpi-sessions-count" class="text-2xl font-black text-brand-900">0</span>
+              <span class="text-sm text-warmgray-600 font-medium">sessions</span>
+            </div>
+          </div>
+          <span class="text-2xl">🌱</span>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-warmgray-200 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-brand-700 uppercase block">Avg Blood Pressure</span>
+            <div class="flex items-baseline gap-1 mt-0.5">
+              <span id="kpi-avg-bp" class="text-2xl font-black text-warmgray-900">&mdash;</span>
+              <span class="text-sm text-warmgray-600 font-medium">mmHg</span>
+            </div>
+            <p id="kpi-bp-badge" class="text-xs text-warmgray-700 font-bold">Log a reading to see your range</p>
+          </div>
+          <span class="text-2xl">❤️</span>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-warmgray-200 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-brand-700 uppercase block">Resting Pulse</span>
+            <div class="flex items-baseline gap-1 mt-0.5">
+              <span id="kpi-avg-pulse" class="text-2xl font-black text-rose-700">&mdash;</span>
+              <span class="text-sm text-warmgray-600 font-medium">BPM</span>
+            </div>
+          </div>
+          <span class="text-2xl">💓</span>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-warmgray-200 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-brand-700 uppercase block">Daily Hydration Avg</span>
+            <div class="flex items-baseline gap-1 mt-0.5">
+              <span id="kpi-avg-water" class="text-2xl font-black text-blue-800">0</span>
+              <span class="text-sm text-warmgray-600 font-medium">cups/day</span>
+            </div>
+          </div>
+          <span class="text-2xl">💧</span>
+        </div>
+      </div>
+
+      <!-- Charts Stacked Strictly Vertically -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-warmgray-200 report-card">
+        <h3 class="text-sm font-bold text-warmgray-900 mb-1">Blood Pressure Trend (Systolic & Diastolic)</h3>
+        <p class="text-xs text-warmgray-600 mb-2">Red: Systolic (&lt;120) | Blue: Diastolic (&lt;80)</p>
+        <div class="relative h-56 w-full">
+          <canvas id="bpChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-warmgray-200 report-card">
+        <h3 class="text-sm font-bold text-warmgray-900 mb-1">Body Weight Progression</h3>
+        <div class="relative h-48 w-full">
+          <canvas id="weightChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-warmgray-200 report-card">
+        <h3 class="text-sm font-bold text-warmgray-900 mb-1">Exercise Duration (Minutes)</h3>
+        <div class="relative h-48 w-full">
+          <canvas id="activityChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-warmgray-200 report-card">
+        <h3 class="text-sm font-bold text-warmgray-900 mb-1">Hydration (Cups of Water/Tea)</h3>
+        <div class="relative h-48 w-full">
+          <canvas id="hydrationChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Action Buttons Stacked -->
+      <div class="flex flex-col space-y-2 no-print">
+        <button onclick="exportCSV()" class="w-full bg-warmgray-100 hover:bg-warmgray-200 text-warmgray-900 font-bold py-3.5 rounded-xl border border-warmgray-300 text-sm flex items-center justify-center gap-2">
+          <span>📥</span> Export CSV Health Log
+        </button>
+        <button onclick="window.print()" class="w-full bg-brand-700 hover:bg-brand-800 text-white font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2">
+          <span>🖨️️</span> Print Doctor Consultation Sheet
+        </button>
+      </div>
+
+      <!-- Doctor View Records List (Vertical Cards) -->
+      <div class="bg-white rounded-2xl shadow-sm border border-warmgray-200 p-4 report-card">
+        <h3 class="text-sm font-bold text-warmgray-900 mb-3">Daily History Log (Doctor View)</h3>
+        <div id="vitals-vertical-history" class="space-y-3">
+          <!-- Dynamically populated vertical cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- SECTION: LIBRARY & FORM GUIDE -->
+    <!-- ========================================== -->
+    <section id="section-library" class="tab-content hidden flex flex-col space-y-4">
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 space-y-1">
+        <h2 class="text-xl font-bold text-warmgray-900">Movement & Safety Guide</h2>
+        <p class="text-sm text-warmgray-600">Form tips and gentle rules for home practice</p>
+      </div>
+
+      <!-- Chair Tai Chi -->
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 space-y-3">
+        <div class="flex items-center gap-2 border-b pb-2">
+          <span class="text-2xl">🪑</span>
+          <h3 class="text-base font-bold text-brand-900">Chair Tai Chi (Fluidity & Breathing)</h3>
+        </div>
+
+        <div class="bg-warmgray-50 p-3 rounded-2xl border border-warmgray-200 space-y-1">
+          <h4 class="font-bold text-brand-800 text-sm">Cloud Hands (Seated)</h4>
+          <p class="text-sm text-warmgray-700 leading-relaxed">
+            Sit upright away from the backrest. Softly float both hands in front of the chest as if tracing circular clouds in the air. Rotate gently from the torso, not just wrists.
+          </p>
+        </div>
+
+        <div class="bg-warmgray-50 p-3 rounded-2xl border border-warmgray-200 space-y-1">
+          <h4 class="font-bold text-brand-800 text-sm">Parting the Wild Horse's Mane</h4>
+          <p class="text-sm text-warmgray-700 leading-relaxed">
+            Hold a soft imaginary circle with your hands in front of your chest. Slowly glide one hand forward and outward at shoulder level while pressing the other down. Stay within 70% of maximum stretch.
+          </p>
+        </div>
+      </div>
+
+      <!-- Stationary Bike -->
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 space-y-3">
+        <div class="flex items-center gap-2 border-b pb-2">
+          <span class="text-2xl">🚴</span>
+          <h3 class="text-base font-bold text-amberlead-700">Stationary Bike (Low Impact)</h3>
+        </div>
+
+        <div class="bg-warmgray-50 p-3 rounded-2xl border border-warmgray-200 space-y-2 text-sm">
+          <div>
+            <strong class="text-amberlead-700 block">1. Seat Height:</strong>
+            When pedal is at the lowest position, your knee should have a slight 25°–30° bend, never completely locked out.
+          </div>
+          <div>
+            <strong class="text-amberlead-700 block">2. Talk Test:</strong>
+            You must be able to comfortably speak a full sentence out loud while pedaling. If breathless, dial back resistance.
+          </div>
+        </div>
+      </div>
+
+      <!-- Seated Dumbbells -->
+      <div class="bg-white rounded-3xl p-5 shadow-sm border border-warmgray-200 space-y-3">
+        <div class="flex items-center gap-2 border-b pb-2">
+          <span class="text-2xl">🏋️</span>
+          <h3 class="text-base font-bold text-blue-900">Seated Dumbbells (Functional Strength)</h3>
+        </div>
+
+        <div class="bg-warmgray-50 p-3 rounded-2xl border border-warmgray-200 space-y-1 text-sm">
+          <h4 class="font-bold text-blue-900 text-sm">Seated Bicep Curl & Scapular Row</h4>
+          <p class="text-warmgray-700 leading-relaxed">
+            Keep elbows pinned gently near ribs for curls. For rows, hinge forward slightly at hips with flat back and pinch shoulder blades together at the top. Perform 10–12 smooth, controlled repetitions.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <p class="text-sm text-warmgray-600 text-center px-2 no-print" role="note">
+      Golden Pace is a personal logging tool, not medical advice. Meal estimates are approximate.
+      Talk with your doctor about your readings and before changing exercise or medications.
+      For chest pain, trouble breathing, or sudden weakness, call emergency services (911 in the U.S.).
+    </p>
+  </main>
+
+  <!-- MOBILE BOTTOM BAR (Thumb-friendly navigation) -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-warmgray-200 py-2 px-3 z-40 no-print flex items-center justify-around shadow-lg" aria-label="Bottom Navigation">
+    <button onclick="switchTab('quest')" id="tab-quest-icon" class="flex flex-col items-center justify-center p-1 text-brand-700 transition">
+      <span class="text-2xl leading-none">⭐</span>
+      <span class="text-xs font-bold mt-1">Quest</span>
+    </button>
+    <button onclick="switchTab('today')" id="tab-today-icon" class="flex flex-col items-center justify-center p-1 text-warmgray-500 transition">
+      <span class="text-2xl leading-none">☀️</span>
+      <span class="text-xs font-bold mt-1">Routine</span>
+    </button>
+    <button onclick="switchTab('log')" id="tab-log-icon" class="flex flex-col items-center justify-center p-1 text-warmgray-500 transition">
+      <span class="text-2xl leading-none">🩺</span>
+      <span class="text-xs font-bold mt-1">Vitals</span>
+    </button>
+    <button onclick="switchTab('meals')" id="tab-meals-icon" class="flex flex-col items-center justify-center p-1 text-warmgray-500 transition">
+      <span class="text-2xl leading-none">🥗</span>
+      <span class="text-xs font-bold mt-1">Meals</span>
+    </button>
+    <button onclick="switchTab('reports')" id="tab-reports-icon" class="flex flex-col items-center justify-center p-1 text-warmgray-500 transition">
+      <span class="text-2xl leading-none">📊</span>
+      <span class="text-xs font-bold mt-1">Reports</span>
+    </button>
+  </nav>
+
+  <script>
+    /* =========================================================
+       1. PERSISTENT INDEXEDDB DATABASE (Dexie.js)
+       ========================================================= */
+    function showFatal(msg) {
+      const d = document.createElement('div');
+      d.setAttribute('role', 'alert');
+      d.className = 'fixed inset-x-0 top-0 z-[100] bg-rose-700 text-white p-4 text-base font-bold';
+      d.textContent = msg;
+      (document.body || document.documentElement).appendChild(d);
+    }
+
+    if (typeof Dexie === 'undefined') {
+      showFatal('Golden Pace could not load its storage library. Please check your internet connection and reload the page.');
+      throw new Error('Dexie failed to load');
+    }
+
+    const db = new Dexie("GoldenPaceGamifiedDB");
+    // Version 1 indexed nearly every field (even multi-megabyte meal photos). Kept so existing
+    // installs upgrade cleanly to version 2, which indexes only what the app actually queries.
+    db.version(1).stores({
+      vitals: "++id, date, time, bpContext, systolic, diastolic, pulse, weight, unit, medsMorning, medsEvening, sleepRating, jointStatus, notes, duration, taiChi, bike, weights",
+      meals: "++id, date, time, type, desc, image, analysis",
+      hydration: "date, cupsCount",
+      milestones: "++id, date, type, score, details",
+      reminders: "id, title, time, enabled, sound",
+      gamification: "id, xp, streak, lastActiveDate, badges, dailyQuests, chestClaimed"
+    });
+    db.version(2).stores({
+      vitals: "++id, date, bpContext",
+      meals: "++id, date",
+      hydration: "date",
+      milestones: "++id, date",
+      reminders: "id",
+      gamification: "id"
+    });
+
+    const GEMINI_MODEL = 'gemini-2.5-flash';
+    const LOW_SODIUM_MEAL_MG = 600;   // a meal at or under this earns "Mindful Plate"
+
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function burst(opts) {
+      if (reduceMotion || typeof confetti === 'undefined') return;
+      confetti(opts);
+    }
+
+    function escapeHTML(v) {
+      return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function safeImageSrc(src) {
+      return (typeof src === 'string' && /^data:image\/[a-z0-9.+-]+;base64,/i.test(src) && !/["'<>\s]/.test(src)) ? src : '';
+    }
+
+    let currentUnit = 'lbs';
+    let userApiKey = "";
+    let logs = [];
+    let meals = [];
+    let waterLog = {};
+    let milestones = [];
+    let reminders = [];
+
+    // Gamification state
+    let playerStats = {
+      id: "player_profile",
+      xp: 0,
+      streak: 0,
+      lastActiveDate: "",
+      lastQuestDate: "",
+      badges: [],
+      dailyQuests: {},
+      xpClaimed: {},
+      chestClaimed: false
+    };
+
+    // Level Tiers
+    const rankTiers = [
+      { level: 1, name: "Gentle Seedling", icon: "🌱", minXP: 0, desc: "Taking the first peaceful steps of physical renewal." },
+      { level: 2, name: "Flowing Bamboo", icon: "🎋", minXP: 150, desc: "Bending with ease, developing suppleness in spine and hips." },
+      { level: 3, name: "Mountain Oak", icon: "🌳", minXP: 400, desc: "Rooted in strength, steady blood vessels and calm breathing." },
+      { level: 4, name: "Golden Crane", icon: "🦩", minXP: 800, desc: "Effortless poise, graceful balance and functional endurance." },
+      { level: 5, name: "Tai Chi Master", icon: "☯️", minXP: 1400, desc: "Lifelong harmony of mind, breath, and physical vitality." }
+    ];
+
+    // Collectible Badges Metadata
+    const allBadges = [
+      {
+        id: "morning_bird",
+        name: "Morning Bird",
+        icon: "🌅",
+        desc: "Logged morning blood pressure and vitals before 9:00 AM.",
+        xpAward: 40
+      },
+      {
+        id: "iron_willow",
+        name: "Iron Willow",
+        icon: "🌿",
+        desc: "Completed 5 Chair Tai Chi or Seated Dumbbell sessions.",
+        xpAward: 75
+      },
+      {
+        id: "hydration_hero",
+        name: "Hydration Hero",
+        icon: "💧",
+        desc: "Reached full 8 cups of water in a single day.",
+        xpAward: 50
+      },
+      {
+        id: "cardio_captain",
+        name: "Cardio Captain",
+        icon: "🚴",
+        desc: "Logged 15+ minutes of smooth stationary bike pedaling.",
+        xpAward: 60
+      },
+      {
+        id: "doctors_champion",
+        name: "Doctor's Champion",
+        icon: "🩺",
+        desc: "Maintained a 7-day vitals and medication streak.",
+        xpAward: 100
+      },
+      {
+        id: "mindful_plate",
+        name: "Mindful Plate",
+        icon: "🥗",
+        desc: "Analyzed a heart-healthy, low-sodium meal with Gemini AI.",
+        xpAward: 50
+      }
+    ];
+
+    // Checklist Definition
+    const questTaskDefinitions = [
+      { id: "quest_bp_am", title: "Morning Blood Pressure & Pulse", xp: 30, icon: "❤️", desc: "Check vitals after resting 5 min seated.", tabTarget: "log" },
+      { id: "quest_meds_am", title: "Morning Prescriptions / Meds", xp: 20, icon: "💊", desc: "Take physician-prescribed morning doses.", tabTarget: "log" },
+      { id: "quest_workout", title: "15-Min Tai Chi, Bike, or Dumbbells", xp: 50, icon: "☀️", desc: "Gentle joint mobility & cardiac warmup.", tabTarget: "today" },
+      { id: "quest_water", title: "Drink 8 Cups of Water (Hydration)", xp: 30, icon: "💧", desc: "Keep joints lubricated & blood flowing.", tabTarget: "meals" },
+      { id: "quest_meal_ai", title: "Log Healthy Meal with AI Vision", xp: 40, icon: "🥗", desc: "Photo check for protein & heart-safe sodium.", tabTarget: "meals" },
+      { id: "quest_bp_pm", title: "Evening BP or Calming Wind-Down", xp: 30, icon: "🌙", desc: "Record evening reading or 5 min breath.", tabTarget: "log" },
+      { id: "quest_meds_pm", title: "Evening Prescriptions Check", xp: 20, icon: "✨", desc: "Verify evening medical routine.", tabTarget: "log" }
+    ];
+
+    /* =========================================================
+       2. SYNTHESIZER AUDIO CHIMES (Web Audio API)
+       ========================================================= */
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    const CHIME_PRESETS = {
+      quest_complete: { step: 0.08, dur: 0.9, peak: 0.2, wave: 'triangle', notes: [523.25, 659.25, 783.99, 1046.50] },
+      chest_fanfare:  { step: 0.12, dur: 1.2, peak: 0.25, wave: 'sine', notes: [523.25, 659.25, 783.99, 1046.50, 1318.51] },
+      alert:          { step: 0.18, dur: 0.6, peak: 0.25, wave: 'sine', notes: [659.25, 830.61, 987.77] }
+    };
+
+    function playChimeSound(type = 'chime') {
+      try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        const preset = CHIME_PRESETS[type];
+
+        if (preset) {
+          preset.notes.forEach((freq, i) => {
+            const t = now + i * preset.step;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = preset.wave;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(preset.peak, t + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + preset.dur);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + preset.dur + 0.05);
+          });
+        } else {
+          // Standard two-tone checkmark chime
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc1.type = 'triangle';
+          osc2.type = 'sine';
+          osc1.frequency.setValueAtTime(587.33, now);
+          osc2.frequency.setValueAtTime(880.00, now + 0.12);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+          osc1.start(now);
+          osc1.stop(now + 0.35);
+          osc2.start(now + 0.12);
+          osc2.stop(now + 0.75);
+        }
+      } catch (err) {
+        console.debug("Audio sound skipped:", err);
+      }
+    }
+  </script>
+
+  <script>
+    /* =========================================================
+       3. GAMIFICATION ENGINE (XP, LEVELS, STREAK & CHEST)
+       ========================================================= */
+
+    function toDateKey(d) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function getTodayKey() {
+      return toDateKey(new Date());
+    }
+
+    function daysBetweenKeys(a, b) {
+      const [ya, ma, da] = a.split('-').map(Number);
+      const [yb, mb, db_] = b.split('-').map(Number);
+      return Math.round((Date.UTC(yb, mb - 1, db_) - Date.UTC(ya, ma - 1, da)) / 86400000);
+    }
+
+    async function initGamification() {
+      const today = getTodayKey();
+      const stored = await db.gamification.get("player_profile");
+
+      playerStats = stored || {
+        id: "player_profile", xp: 0, streak: 0, lastActiveDate: today, lastQuestDate: "",
+        badges: [], dailyQuests: {}, xpClaimed: {}, chestClaimed: false
+      };
+      if (!Array.isArray(playerStats.badges)) playerStats.badges = [];
+      if (!playerStats.dailyQuests) playerStats.dailyQuests = {};
+      if (!playerStats.xpClaimed) playerStats.xpClaimed = {};
+      if (playerStats.lastQuestDate === undefined) playerStats.lastQuestDate = stored ? (stored.lastActiveDate || "") : "";
+
+      if (!stored || playerStats.lastActiveDate !== today) {
+        // New day: fresh quests. The streak is NOT touched here any more; it only moves when
+        // the person actually completes something (see registerActivity), not by opening the app.
+        playerStats.dailyQuests = {};
+        playerStats.xpClaimed = {};
+        playerStats.chestClaimed = false;
+        playerStats.lastActiveDate = today;
+        await db.gamification.put(playerStats);
+      }
+
+      renderGamificationUI();
+      renderChecklistUI();
+    }
+
+    // Kindness streak: one missed day is forgiven; a longer gap softly halves instead of wiping.
+    function registerActivity() {
+      const today = getTodayKey();
+      const last = playerStats.lastQuestDate || '';
+      if (last === today) return;
+      if (!last) {
+        playerStats.streak = 1;
+      } else {
+        const gap = daysBetweenKeys(last, today);
+        if (gap === 1) playerStats.streak += 1;
+        else if (gap === 2) playerStats.streak = Math.max(1, playerStats.streak);
+        else playerStats.streak = Math.max(1, Math.floor(playerStats.streak / 2));
+      }
+      playerStats.lastQuestDate = today;
+    }
+
+    async function saveGamification() {
+      await db.gamification.put(playerStats);
+      renderGamificationUI();
+    }
+
+    function getCurrentRank() {
+      let current = rankTiers[0];
+      for (let i = 0; i < rankTiers.length; i++) {
+        if (playerStats.xp >= rankTiers[i].minXP) {
+          current = rankTiers[i];
+        } else {
+          break;
+        }
+      }
+      return current;
+    }
+
+    function getNextRank() {
+      const current = getCurrentRank();
+      const nextIndex = rankTiers.findIndex(r => r.level === current.level) + 1;
+      return nextIndex < rankTiers.length ? rankTiers[nextIndex] : null;
+    }
+
+    function renderGamificationUI() {
+      const currentRank = getCurrentRank();
+      const nextRank = getNextRank();
+
+      // Top Header
+      document.getElementById('player-avatar')?.setAttribute('title', currentRank.name);
+      document.getElementById('header-avatar').textContent = currentRank.icon;
+      document.getElementById('player-level-badge').textContent = `Lvl ${currentRank.level}`;
+      document.getElementById('player-title').textContent = currentRank.name;
+      document.getElementById('streak-count').textContent = playerStats.streak;
+      document.getElementById('xp-summary-badge').textContent = `${playerStats.xp} XP`;
+
+      // Top Level Progress
+      let pct = 100;
+      if (nextRank) {
+        const span = nextRank.minXP - currentRank.minXP;
+        const progress = playerStats.xp - currentRank.minXP;
+        pct = Math.min(100, Math.max(8, Math.round((progress / span) * 100)));
+      }
+      document.getElementById('level-progress-bar').style.width = `${pct}%`;
+
+      // Modal Trophy Shelf elements
+      document.getElementById('modal-rank-tier').textContent = `Level ${currentRank.level} Tier`;
+      document.getElementById('modal-xp-total').textContent = `${playerStats.xp} Vitality Points`;
+      document.getElementById('modal-rank-icon').textContent = currentRank.icon;
+      document.getElementById('modal-rank-name').textContent = currentRank.name;
+      document.getElementById('modal-rank-desc').textContent = currentRank.desc;
+      document.getElementById('modal-streak-headline').textContent = `Active Streak: ${playerStats.streak} Days`;
+
+      if (nextRank) {
+        document.getElementById('modal-next-rank-name').textContent = nextRank.name;
+        document.getElementById('modal-xp-to-next').textContent = `${nextRank.minXP - playerStats.xp} XP needed`;
+        document.getElementById('modal-level-bar').style.width = `${pct}%`;
+      } else {
+        document.getElementById('modal-next-rank-name').textContent = "Supreme Mastery";
+        document.getElementById('modal-xp-to-next').textContent = "Max Rank Achieved";
+        document.getElementById('modal-level-bar').style.width = `100%`;
+      }
+
+      renderBadgesList();
+    }
+
+    function renderBadgesList() {
+      const container = document.getElementById('badges-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const unlockedCount = playerStats.badges.length;
+      document.getElementById('badges-unlocked-ratio').textContent = `${unlockedCount} of ${allBadges.length} Unlocked`;
+
+      if (unlockedCount > 0) {
+        document.getElementById('badge-unlocked-dot').classList.remove('hidden');
+      }
+
+      allBadges.forEach(badge => {
+        const isUnlocked = playerStats.badges.includes(badge.id);
+        const card = document.createElement('div');
+        card.className = `p-3.5 rounded-2xl border-2 flex items-center gap-3.5 transition ${
+          isUnlocked 
+            ? 'bg-amberlead-50/70 border-amberlead-400 shadow-sm' 
+            : 'bg-warmgray-50 border-warmgray-200 opacity-60'
+        }`;
+
+        card.innerHTML = `
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 ${
+            isUnlocked ? 'bg-amberlead-400 text-white shadow-inner' : 'bg-warmgray-200 text-warmgray-400'
+          }">
+            ${badge.icon}
+          </div>
+          <div class="flex-grow">
+            <div class="flex items-center justify-between">
+              <h5 class="font-bold text-sm text-warmgray-900">${badge.name}</h5>
+              <span class="text-xs font-black uppercase px-2 py-0.5 rounded-full ${
+                isUnlocked ? 'bg-emerald-100 text-emerald-800' : 'bg-warmgray-200 text-warmgray-600'
+              }">
+                ${isUnlocked ? '✓ Unlocked' : '+ ' + badge.xpAward + ' XP'}
+              </span>
+            </div>
+            <p class="text-sm text-warmgray-700 leading-tight mt-0.5">${badge.desc}</p>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Adds points and celebrates a level-up. Returns true if the person reached a new rank.
+    function addXP(points) {
+      const before = getCurrentRank();
+      playerStats.xp += points;
+      const after = getCurrentRank();
+      if (after.level > before.level) {
+        playChimeSound('chest_fanfare');
+        burst({ particleCount: 120, spread: 100, origin: { y: 0.5 } });
+        showToast(`🎉 Level Up: ${after.name}!`, after.desc);
+        return true;
+      }
+      return false;
+    }
+
+    function awardXP(points, eventTarget = null) {
+      registerActivity();
+      const leveledUp = addXP(points);
+      saveGamification();
+
+      if (!leveledUp) {
+        playChimeSound('chime');
+        showToast(`+${points} Vitality Points!`, `Keep glowing toward ${getNextRank()?.name || getCurrentRank().name}!`);
+      }
+      if (eventTarget) createFloatingXP(points, eventTarget);
+    }
+
+    // Each reward can be earned once per day, so re-checking boxes or re-saving cannot farm points.
+    function awardOnce(key, points, eventTarget = null) {
+      if (playerStats.xpClaimed[key]) return false;
+      playerStats.xpClaimed[key] = true;
+      awardXP(points, eventTarget);
+      return true;
+    }
+
+    // Marks a daily quest done (from real activity or a manual tick) and pays its XP once.
+    function completeQuest(id, eventTarget = null) {
+      const task = questTaskDefinitions.find(t => t.id === id);
+      playerStats.dailyQuests[id] = true;
+      if (task) awardOnce('quest:' + id, task.xp, eventTarget);
+    }
+
+    function createFloatingXP(points, element) {
+      const rect = element.getBoundingClientRect();
+      const span = document.createElement('div');
+      span.className = 'fixed z-50 text-amberlead-600 font-black text-xl xp-float-anim pointer-events-none drop-shadow';
+      span.textContent = `+${points} XP ⭐`;
+      span.style.left = `${rect.left + (rect.width / 2) - 30}px`;
+      span.style.top = `${rect.top}px`;
+      document.body.appendChild(span);
+
+      setTimeout(() => {
+        if (span.parentNode) span.parentNode.removeChild(span);
+      }, 1200);
+    }
+
+    function unlockBadge(badgeId) {
+      if (playerStats.badges.includes(badgeId)) return;
+      const meta = allBadges.find(b => b.id === badgeId);
+      if (!meta) return;
+      playerStats.badges.push(badgeId);
+      const leveledUp = addXP(meta.xpAward);
+      playChimeSound('quest_complete');
+      burst({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+      if (!leveledUp) showToast(`🏆 Badge Unlocked: ${meta.name}!`, meta.desc);
+      saveGamification();
+    }
+
+    function hasLoggedConsecutiveDays(n) {
+      const dates = new Set(logs.map(l => l.date));
+      for (let i = 0; i < n; i++) {
+        if (!dates.has(formatDateOffset(new Date(), -i))) return false;
+      }
+      return true;
+    }
+
+    /* =========================================================
+       4. DAILY QUEST CHECKLIST LOGIC
+       ========================================================= */
+
+    function renderChecklistUI() {
+      const container = document.getElementById('quest-checklist-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      let completedCount = 0;
+
+      questTaskDefinitions.forEach(task => {
+        const isDone = !!playerStats.dailyQuests[task.id];
+        if (isDone) completedCount++;
+
+        const div = document.createElement('div');
+        div.className = `p-3.5 rounded-2xl border-2 flex items-center justify-between transition active:scale-[0.99] select-none ${
+          isDone 
+            ? 'bg-emerald-50/70 border-emerald-500 shadow-sm' 
+            : 'bg-white border-warmgray-200 hover:border-brand-300'
+        }`;
+
+        div.innerHTML = `
+          <div class="flex items-center gap-3 overflow-hidden cursor-pointer" role="checkbox" aria-checked="${isDone}" tabindex="0" onclick="toggleQuestTask('${task.id}', this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
+              isDone ? 'bg-emerald-600 text-white' : 'bg-warmgray-100 text-warmgray-700'
+            }">
+              ${isDone ? '✓' : task.icon}
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <h4 class="font-bold text-sm text-warmgray-900 leading-tight ${isDone ? 'line-through text-emerald-900' : ''}">
+                  ${task.title}
+                </h4>
+              </div>
+              <p class="text-sm text-warmgray-600 mt-0.5">${task.desc}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-sm font-black px-2.5 py-1 rounded-lg ${
+              isDone ? 'bg-emerald-100 text-emerald-800' : 'bg-amberlead-100 text-amberlead-700'
+            }">
+              +${task.xp} XP
+            </span>
+            <button onclick="switchTab('${task.tabTarget}')" title="Jump to tool" aria-label="Open the tool for: ${task.title}" class="w-8 h-8 rounded-lg bg-warmgray-100 text-warmgray-600 flex items-center justify-center font-bold text-sm hover:bg-brand-100">
+              ➜
+            </button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      const totalTasks = questTaskDefinitions.length;
+      const pct = Math.round((completedCount / totalTasks) * 100);
+      document.getElementById('quest-completion-text').textContent = `${completedCount} of ${totalTasks} Done`;
+      document.getElementById('quest-percent-badge').textContent = `${pct}%`;
+      document.getElementById('quest-progress-bar').style.width = `${pct}%`;
+
+      // Chest visual state
+      const chestDisplay = document.getElementById('chest-display-emoji');
+      const chestLabel = document.getElementById('chest-status-label');
+      const chestBox = document.getElementById('daily-chest-box');
+
+      if (playerStats.chestClaimed) {
+        chestDisplay.textContent = "🏆";
+        chestLabel.textContent = "Claimed";
+        chestBox.className = "w-16 h-16 rounded-2xl bg-emerald-50 border-2 border-emerald-400 flex flex-col items-center justify-center";
+      } else if (completedCount >= totalTasks) {
+        chestDisplay.textContent = "🎁";
+        chestLabel.textContent = "Open Me!";
+        chestBox.className = "w-16 h-16 rounded-2xl bg-amberlead-100 border-2 border-amberlead-500 flex flex-col items-center justify-center chest-ready";
+      } else {
+        chestDisplay.textContent = "🔒";
+        chestLabel.textContent = `${completedCount}/${totalTasks}`;
+        chestBox.className = "w-16 h-16 rounded-2xl bg-amberlead-50 border-2 border-dashed border-amberlead-400 flex flex-col items-center justify-center";
+      }
+    }
+
+    async function toggleQuestTask(taskId, element) {
+      const task = questTaskDefinitions.find(t => t.id === taskId);
+      if (!task) return;
+
+      if (!playerStats.dailyQuests[taskId]) {
+        completeQuest(taskId, element);
+
+        const total = questTaskDefinitions.length;
+        const count = Object.keys(playerStats.dailyQuests).filter(k => playerStats.dailyQuests[k]).length;
+        if (count >= total && !playerStats.chestClaimed) {
+          playChimeSound('quest_complete');
+          burst({ particleCount: 75, spread: 80, origin: { y: 0.5 } });
+          showToast("🎉 All Quests Complete!", "Tap the Golden Chest to claim your bonus!");
+        }
+      } else {
+        // Unticking never re-pays XP later: the once-per-day claim stays recorded.
+        delete playerStats.dailyQuests[taskId];
+        playChimeSound('alert');
+      }
+
+      await saveGamification();
+      renderChecklistUI();
+    }
+
+    function handleChestClick() {
+      const total = questTaskDefinitions.length;
+      const count = Object.keys(playerStats.dailyQuests).filter(k => playerStats.dailyQuests[k]).length;
+
+      if (playerStats.chestClaimed) {
+        showToast("Already Claimed", "You've earned today's bonus! Check back tomorrow.");
+        return;
+      }
+
+      if (count < total) {
+        showToast("Chest is Locked", `Complete ${total - count} more quest items today to open!`);
+        return;
+      }
+
+      // Open Modal
+      document.getElementById('chest-modal').classList.remove('hidden');
+      playChimeSound('chest_fanfare');
+      burst({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
+    }
+
+    async function claimChestReward() {
+      if (playerStats.chestClaimed) return;
+      playerStats.chestClaimed = true;
+      document.getElementById('chest-modal').classList.add('hidden');
+      const leveledUp = addXP(50);
+      registerActivity();
+      await saveGamification();
+      renderChecklistUI();
+      if (!leveledUp) showToast("Reward Claimed!", "+50 Bonus XP added to your vitality vault.");
+    }
+  </script>
+
+  <script>
+    /* =========================================================
+       5. GUIDED WORKOUT ROUTINES & SVGs
+       ========================================================= */
+    const weeklyRoutines = {
+      1: {
+        title: "Monday: Chair Tai Chi & Breath Foundation",
+        desc: "Gentle lung expansion, postural alignment, and fluid arm movements to start your week with ease.",
+        targetTime: "15 Minutes",
+        intensity: "Gentle (2/5)",
+        equip: "Sturdy Armless Chair",
+        benefit: "Posture & Joint Fluidity",
+        steps: [
+          {
+            title: "Seated Centering & Abdominal Breathing",
+            category: "Chair Tai Chi",
+            duration: 120,
+            desc: "Sit tall with feet flat on the floor. Inhale slowly through your nose, expanding abdomen. Exhale softly through relaxed lips.",
+            tip: "Imagine a golden string gently pulling the crown of your head toward the sky.",
+            svgType: "breathing"
+          },
+          {
+            title: "Cloud Hands Over Water",
+            category: "Chair Tai Chi",
+            duration: 180,
+            desc: "Float your right hand across your chest at rib level while turning your torso slightly to the right. Switch hands gently and flow smoothly to the left.",
+            tip: "Let the movement originate from your belly and ribs, not just your wrists.",
+            svgType: "cloud_hands"
+          },
+          {
+            title: "Parting the Wild Horse's Mane",
+            category: "Chair Tai Chi",
+            duration: 180,
+            desc: "Hold a soft imaginary circle with your hands. Slowly glide one arm forward and outward at shoulder level while pressing the other palm down by your hip.",
+            tip: "Stay within 70% of your maximum stretch. Never force your shoulders.",
+            svgType: "horse_mane"
+          },
+          {
+            title: "Seated Closing Harmony & Cooldown",
+            category: "Chair Tai Chi",
+            duration: 120,
+            desc: "Float hands up to chest height on a slow inhale, turn palms down, and gently lower them to your lap on the exhale.",
+            tip: "Notice the warm sensation in your palms and relaxed shoulders.",
+            svgType: "cooldown"
+          }
+        ]
+      },
+      2: {
+        title: "Tuesday: Gentle Stationary Bike Spin",
+        desc: "Low-resistance pedaling to warm hip and knee joints and promote blood vessel flexibility.",
+        targetTime: "10–15 Minutes",
+        intensity: "Easy Pacing (2/5)",
+        equip: "Stationary Bike",
+        benefit: "Cardio & Knee Lubrication",
+        steps: [
+          {
+            title: "Bike Setup & Gentle 2-Min Warmup",
+            category: "Stationary Bike",
+            duration: 120,
+            desc: "Adjust seat so knee has a comfortable 25-degree bend at bottom pedal stroke. Begin pedaling with very low resistance (level 1-2).",
+            tip: "Keep posture upright. Do not slump over the handlebars.",
+            svgType: "bike"
+          },
+          {
+            title: "Steady Conversational Cruise",
+            category: "Stationary Bike",
+            duration: 360,
+            desc: "Maintain a steady, rhythmic cadence. Breathe evenly through your nose and mouth.",
+            tip: "Talk Test: Make sure you can comfortably speak a full sentence out loud.",
+            svgType: "bike"
+          },
+          {
+            title: "Spin Cooldown & Pedal Coast",
+            category: "Stationary Bike",
+            duration: 120,
+            desc: "Drop resistance down to minimum. Ease into slow rotations, allowing your heart rate to gently taper back to baseline.",
+            tip: "Take a sip of water while remaining seated for 30 seconds before standing.",
+            svgType: "bike"
+          }
+        ]
+      },
+      3: {
+        title: "Wednesday: Seated Light Dumbbell Strength",
+        desc: "Functional upper-body and core stability to protect muscle mass and preserve independence.",
+        targetTime: "15 Minutes",
+        intensity: "Moderate (3/5)",
+        equip: "Light Weights (2-5 lbs) + Chair",
+        benefit: "Grip & Upper Back Strength",
+        steps: [
+          {
+            title: "Seated Shoulder Rolls & Arm Warmup",
+            category: "Dumbbell Strength",
+            duration: 120,
+            desc: "Without weights, roll your shoulders up, back, and down 10 times. Gently open and close your hands into fists.",
+            tip: "Sit away from the backrest to engage your deep core abdominal muscles.",
+            svgType: "breathing"
+          },
+          {
+            title: "Seated Bicep Curls",
+            category: "Dumbbell Strength",
+            duration: 180,
+            desc: "Pick up your light dumbbells. Keep elbows glued lightly to your ribcage. Curl upward smoothly for 2 seconds, then lower under control for 3 seconds.",
+            tip: "Exhale as you lift the weights; inhale smoothly as you lower them.",
+            svgType: "bicep_curl"
+          },
+          {
+            title: "Seated Scapular Row",
+            category: "Dumbbell Strength",
+            duration: 180,
+            desc: "Lean forward slightly from the hips with a flat back. Pull dumbbells up along your thighs, gently pinching your shoulder blades together at the top.",
+            tip: "This strengthens posture muscles that prevent upper-back rounding.",
+            svgType: "seated_row"
+          }
+        ]
+      },
+      4: {
+        title: "Thursday: Chair Tai Chi Spine Mobility",
+        desc: "Rotational movement for thoracic mobility, shoulder opening, and deeper relaxation.",
+        targetTime: "15 Minutes",
+        intensity: "Gentle (2/5)",
+        equip: "Sturdy Chair",
+        benefit: "Spine Mobility & Stress Relief",
+        steps: [
+          {
+            title: "Spine Lengthening & Torso Wave",
+            category: "Chair Tai Chi",
+            duration: 180,
+            desc: "Rest hands on knees. Inhale as you gently lift your sternum forward and upward. Exhale as you softly round your upper back.",
+            tip: "Move like seaweed swaying in gentle ocean currents.",
+            svgType: "breathing"
+          },
+          {
+            title: "Cloud Hands with Side Step Taps",
+            category: "Chair Tai Chi",
+            duration: 240,
+            desc: "As your hands gently trace circles across your body, gently tap your left toe slightly to the side, then return to center and tap with the right toe.",
+            tip: "Keeps the hip flexors awake while seated.",
+            svgType: "cloud_hands"
+          }
+        ]
+      },
+      5: {
+        title: "Friday: Stationary Bike & Leg Flush",
+        desc: "A rejuvenating light cardiovascular ride to flush joint stiffness before the weekend.",
+        targetTime: "12–15 Minutes",
+        intensity: "Easy-to-Moderate (2.5/5)",
+        equip: "Stationary Bike",
+        benefit: "Cardiovascular Endurance",
+        steps: [
+          {
+            title: "Easy 3-Minute Spin",
+            category: "Stationary Bike",
+            duration: 180,
+            desc: "Light smooth pedaling. Focus on full circular strokes rather than pushing solely with your thighs.",
+            tip: "Relax your jaw and neck muscles as you pedal.",
+            svgType: "bike"
+          },
+          {
+            title: "Gentle Wind-Down",
+            category: "Stationary Bike",
+            duration: 180,
+            desc: "Slow your pedals to a tranquil crawl. Notice how warm and limber your hips, knees, and ankles feel.",
+            tip: "Great job completing your week of cardio!",
+            svgType: "bike"
+          }
+        ]
+      },
+      6: {
+        title: "Saturday: Gentle Flexibility & Balance Reset",
+        desc: "Relaxed seated stretches, ankle circles, and postural reset.",
+        targetTime: "12 Minutes",
+        intensity: "Gentle (1.5/5)",
+        equip: "Chair",
+        benefit: "Mobility & Rest",
+        steps: [
+          {
+            title: "Ankle Alphabet & Toe Taps",
+            category: "Mobility",
+            duration: 180,
+            desc: "Lift one foot slightly off the floor and trace letters of the alphabet in the air with your big toe. Switch feet.",
+            tip: "Great for preventing lower leg sluggishness.",
+            svgType: "breathing"
+          },
+          {
+            title: "Seated Cloud Hands Calm",
+            category: "Chair Tai Chi",
+            duration: 240,
+            desc: "Slow, soothing circular arm movements paired with deep, calming belly breaths.",
+            tip: "Relax your eyes or soften your gaze.",
+            svgType: "cloud_hands"
+          }
+        ]
+      },
+      0: {
+        title: "Sunday: Peaceful Rest & Guided Breathing",
+        desc: "Restorative rest day with guided diaphragmatic breathing to nurture cardiovascular recovery.",
+        targetTime: "10 Minutes",
+        intensity: "Restorative (1/5)",
+        equip: "Comfortable Chair or Sofa",
+        benefit: "Nervous System Recovery",
+        steps: [
+          {
+            title: "4-4 Diaphragmatic Breath",
+            category: "Rest & Recovery",
+            duration: 300,
+            desc: "Inhale gently for 4 counts, feel your ribcage softly expand. Exhale slowly for 4 counts, letting all tension melt away.",
+            tip: "A lowered heart rate and calmed nervous system aids restful sleep.",
+            svgType: "breathing"
+          }
+        ]
+      }
+    };
+
+    function getExerciseSVG(type) {
+      switch(type) {
+        case 'cloud_hands':
+          return `
+            <svg viewBox="0 0 280 180" class="w-full max-w-[240px] h-auto drop-shadow-sm" aria-label="Chair Tai Chi Cloud Hands">
+              <rect x="90" y="100" width="100" height="10" rx="4" fill="#a39682"/>
+              <line x1="100" y1="110" x2="95" y2="165" stroke="#7d7261" stroke-width="5" stroke-linecap="round"/>
+              <line x1="180" y1="110" x2="185" y2="165" stroke="#7d7261" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="140" cy="45" r="16" fill="#e8c29e"/>
+              <path d="M125 70 C125 65, 155 65, 155 70 L150 115 L130 115 Z" fill="#3a7d5c"/>
+              <path d="M125 78 Q100 75 90 95 Q100 110 120 105" fill="none" stroke="#2d6349" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="90" cy="95" r="6" fill="#e8c29e"/>
+              <path d="M155 78 Q180 85 190 70 Q200 90 175 102" fill="none" stroke="#3a7d5c" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="190" cy="70" r="6" fill="#e8c29e"/>
+              <text x="140" y="20" text-anchor="middle" font-size="12" font-weight="bold" fill="#2d6349">Continuous Gentle Arc</text>
+            </svg>
+          `;
+        case 'horse_mane':
+          return `
+            <svg viewBox="0 0 280 180" class="w-full max-w-[240px] h-auto drop-shadow-sm" aria-label="Chair Tai Chi Parting Wild Horse Mane">
+              <rect x="90" y="100" width="100" height="10" rx="4" fill="#a39682"/>
+              <line x1="100" y1="110" x2="95" y2="165" stroke="#7d7261" stroke-width="5" stroke-linecap="round"/>
+              <line x1="180" y1="110" x2="185" y2="165" stroke="#7d7261" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="140" cy="45" r="16" fill="#e8c29e"/>
+              <path d="M125 70 L155 70 L150 115 L130 115 Z" fill="#3a7d5c"/>
+              <path d="M155 78 Q180 65 200 55" fill="none" stroke="#2d6349" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="200" cy="55" r="6" fill="#e8c29e"/>
+              <path d="M125 78 Q115 100 105 115" fill="none" stroke="#2d6349" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="105" cy="115" r="6" fill="#e8c29e"/>
+              <text x="140" y="20" text-anchor="middle" font-size="12" font-weight="bold" fill="#2d6349">Float Open • 70% Comfort</text>
+            </svg>
+          `;
+        case 'bike':
+          return `
+            <svg viewBox="0 0 280 180" class="w-full max-w-[240px] h-auto drop-shadow-sm" aria-label="Stationary Bike">
+              <path d="M80 165 L200 165" stroke="#4b5563" stroke-width="7" stroke-linecap="round"/>
+              <line x1="100" y1="165" x2="130" y2="115" stroke="#4b5563" stroke-width="6"/>
+              <line x1="180" y1="165" x2="160" y2="95" stroke="#4b5563" stroke-width="6"/>
+              <circle cx="145" cy="140" r="20" fill="#cbd5e1" stroke="#94a3b8" stroke-width="3"/>
+              <circle cx="135" cy="60" r="14" fill="#e8c29e"/>
+              <line x1="135" y1="74" x2="130" y2="110" stroke="#3a7d5c" stroke-width="10" stroke-linecap="round"/>
+              <line x1="130" y1="110" x2="150" y2="135" stroke="#1e293b" stroke-width="7" stroke-linecap="round"/>
+              <line x1="150" y1="135" x2="155" y2="155" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+              <text x="140" y="20" text-anchor="middle" font-size="12" font-weight="bold" fill="#b45309">Smooth Cadence • Slight Knee Bend</text>
+            </svg>
+          `;
+        case 'bicep_curl':
+          return `
+            <svg viewBox="0 0 280 180" class="w-full max-w-[240px] h-auto drop-shadow-sm" aria-label="Seated Dumbbell Bicep Curl">
+              <rect x="90" y="100" width="100" height="10" rx="4" fill="#a39682"/>
+              <line x1="100" y1="110" x2="95" y2="165" stroke="#7d7261" stroke-width="5" stroke-linecap="round"/>
+              <line x1="180" y1="110" x2="185" y2="165" stroke="#7d7261" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="140" cy="45" r="16" fill="#e8c29e"/>
+              <path d="M125 70 L155 70 L150 115 L130 115 Z" fill="#2563eb"/>
+              <line x1="130" y1="75" x2="130" y2="100" stroke="#1d4ed8" stroke-width="5" stroke-linecap="round"/>
+              <line x1="130" y1="100" x2="145" y2="80" stroke="#1d4ed8" stroke-width="5" stroke-linecap="round"/>
+              <rect x="140" y="74" width="14" height="6" rx="2" fill="#334155"/>
+              <text x="140" y="20" text-anchor="middle" font-size="12" font-weight="bold" fill="#1d4ed8">Elbows Tucked • Controlled Lift</text>
+            </svg>
+          `;
+        case 'seated_row':
+          return `
+            <svg viewBox="0 0 280 180" class="w-full max-w-[240px] h-auto drop-shadow-sm" aria-label="Seated Dumbbell Row">
+              <rect x="90" y="105" width="100" height="10" rx="4" fill="#a39682"/>
+              <line x1="100" y1="115" x2="95" y2="165" stroke="#7d7261" stroke-width="5" stroke-linecap="round"/>
+              <line x1="180" y1="115" x2="185" y2="165" stroke="#7d7261" stroke-width="5" stroke-linecap="round"/>
+              <circle cx="150" cy="48" r="16" fill="#e8c29e"/>
+              <line x1="145" y1="62" x2="135" y2="110" stroke="#2563eb" stroke-width="10" stroke-linecap="round"/>
+              <line x1="140" y1="72" x2="120" y2="78" stroke="#1d4ed8" stroke-width="5" stroke-linecap="round"/>
+              <line x1="120" y1="78" x2="130" y2="92" stroke="#1d4ed8" stroke-width="5" stroke-linecap="round"/>
+              <rect x="124" y="88" width="14" height="6" rx="2" fill="#334155"/>
+              <text x="140" y="20" text-anchor="middle" font-size="12" font-weight="bold" fill="#1d4ed8">Pinch Shoulder Blades Gently</text>
+            </svg>
+          `;
+        default:
+          return `
+            <svg viewBox="0 0 280 180" class="w-full max-w-[240px] h-auto drop-shadow-sm" aria-label="Calm breathing">
+              <circle cx="140" cy="90" r="50" fill="#e5efe7" stroke="#3a7d5c" stroke-width="3" stroke-dasharray="4,4"/>
+              <circle cx="140" cy="90" r="28" fill="#3a7d5c" opacity="0.85"/>
+              <text x="140" y="94" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Peaceful</text>
+              <text x="140" y="165" text-anchor="middle" font-size="12" font-weight="bold" fill="#2d6349">Inhale Calm • Exhale Tension</text>
+            </svg>
+          `;
+      }
+    }
+  </script>
+
+  <script>
+    let currentRoutineDay = 1;
+    let currentStepIndex = 0;
+    let timerSeconds = 120;
+    let timerTotal = 120;
+    let timerInterval = null;
+    let isTimerRunning = false;
+    let selectedMealImageBase64 = null;
+    let timerEndAt = 0;
+    let wakeLock = null;
+
+    async function initApp() {
+      try {
+        const dateInput = document.getElementById('log-date');
+        if (dateInput) {
+          dateInput.value = getTodayKey();
+          dateInput.max = getTodayKey();
+        }
+        const nowHM = new Date().toTimeString().slice(0, 5);
+        const timeInput = document.getElementById('log-time');
+        if (timeInput) timeInput.value = nowHM;
+        const mealTimeInput = document.getElementById('meal-time-input');
+        if (mealTimeInput) mealTimeInput.value = nowHM;
+
+        try { userApiKey = localStorage.getItem('golden_pace_gemini_key') || ""; } catch (e) { userApiKey = ""; }
+
+        setupAccessibility();
+        await initGamification();
+        await initReminders();
+        await loadAllDataFromDB();
+
+        const dayOfWeek = new Date().getDay();
+        const routineSelect = document.getElementById('routine-day-select');
+        if (routineSelect) routineSelect.value = String(dayOfWeek);
+        renderScheduledDay(dayOfWeek);
+
+        renderWaterTracker();
+        renderMealsList();
+        renderReports();
+        renderMilestonesList();
+
+        requestPersistentStorage();
+        checkBackupNudge();
+        showFirstRunHint();
+      } catch (err) {
+        console.error('Golden Pace failed to start:', err);
+        showFatal('Golden Pace could not open its storage on this device. If you are in a private or incognito window, please open it in a normal window.');
+      }
+    }
+
+    function setupAccessibility() {
+      const toast = document.getElementById('toast-banner');
+      if (toast) { toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite'); }
+
+      const modalIds = ['trophy-modal', 'alarm-modal', 'vault-modal', 'api-key-modal', 'chest-modal'];
+      modalIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); }
+      });
+      document.addEventListener('keydown', e => {
+        if (e.key !== 'Escape') return;
+        modalIds.forEach(id => document.getElementById(id)?.classList.add('hidden'));
+      });
+
+      // Clickable non-button elements (header, cards) become keyboard-reachable buttons.
+      document.querySelectorAll('[onclick]').forEach(el => {
+        if (/^(BUTTON|A|INPUT|SELECT|LABEL)$/.test(el.tagName) || el.getAttribute('role')) return;
+        el.setAttribute('role', 'button');
+        if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+        el.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+        });
+      });
+
+      // Keep the screen awake during a guided workout if the timer is running.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && isTimerRunning) requestWakeLock();
+      });
+    }
+
+    function requestPersistentStorage() {
+      // Asks the browser not to evict health records when the device is low on space.
+      try { navigator.storage?.persist?.().catch(() => {}); } catch (e) {}
+    }
+
+    function checkBackupNudge() {
+      try {
+        const last = Number(localStorage.getItem('golden_pace_last_backup') || 0);
+        if (logs.length > 0 && Date.now() - last > 7 * 86400000) {
+          setTimeout(() => showToast('Time for a backup', 'Open the Vault menu and save a backup file so your records stay safe.'), 1500);
+        }
+      } catch (e) {}
+    }
+
+    function showFirstRunHint() {
+      try {
+        if (logs.length === 0 && !localStorage.getItem('golden_pace_welcomed')) {
+          localStorage.setItem('golden_pace_welcomed', '1');
+          setTimeout(() => showToast('Welcome to Golden Pace', 'Log your first reading in the Log tab. Sample data is available from the Log tab if you want to look around.'), 800);
+        }
+      } catch (e) {}
+    }
+
+    async function loadAllDataFromDB() {
+      logs = await db.vitals.orderBy('date').toArray();
+      meals = await db.meals.orderBy('date').reverse().toArray();
+      const waterItems = await db.hydration.toArray();
+      waterLog = {};
+      waterItems.forEach(item => { waterLog[item.date] = item.cupsCount; });
+      milestones = await db.milestones.orderBy('date').reverse().toArray();
+      // Sample records are no longer inserted automatically: a health log should only
+      // ever contain readings the person entered (or explicitly chose to load as a sample).
+    }
+
+    function formatDateOffset(baseDate, offsetDays) {
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() + offsetDays);
+      return toDateKey(d);
+    }
+
+    async function seedInitialDB() {
+      const today = new Date();
+      const initialLogs = [
+        {
+          date: formatDateOffset(today, -6),
+          time: "08:15",
+          bpContext: "Morning (pre-meds)",
+          systolic: 128,
+          diastolic: 82,
+          pulse: 74,
+          weight: 169.2,
+          unit: 'lbs',
+          medsMorning: true,
+          medsEvening: true,
+          sleepRating: "4",
+          taiChi: true,
+          bike: false,
+          weights: false,
+          duration: 15,
+          jointStatus: "Joints Felt Great & Loose",
+          notes: "First chair tai chi session. Breathing felt very calming."
+        },
+        {
+          date: formatDateOffset(today, -5),
+          time: "08:20",
+          bpContext: "Morning (pre-meds)",
+          systolic: 126,
+          diastolic: 80,
+          pulse: 72,
+          weight: 169.0,
+          unit: 'lbs',
+          medsMorning: true,
+          medsEvening: true,
+          sleepRating: "4",
+          taiChi: false,
+          bike: true,
+          weights: false,
+          duration: 10,
+          jointStatus: "Mild Knee Stiffness",
+          notes: "Pedaled smoothly at level 1. Raised seat 1 notch; knees felt better."
+        },
+        {
+          date: formatDateOffset(today, -4),
+          time: "08:10",
+          bpContext: "Morning (pre-meds)",
+          systolic: 125,
+          diastolic: 81,
+          pulse: 71,
+          weight: 168.8,
+          unit: 'lbs',
+          medsMorning: true,
+          medsEvening: true,
+          sleepRating: "3",
+          taiChi: false,
+          bike: false,
+          weights: true,
+          duration: 12,
+          jointStatus: "Joints Felt Great & Loose",
+          notes: "Used 3 lb dumbbells for curls and rows."
+        },
+        {
+          date: formatDateOffset(today, -3),
+          time: "08:30",
+          bpContext: "Morning (pre-meds)",
+          systolic: 123,
+          diastolic: 79,
+          pulse: 70,
+          weight: 168.6,
+          unit: 'lbs',
+          medsMorning: true,
+          medsEvening: true,
+          sleepRating: "5",
+          taiChi: true,
+          bike: false,
+          weights: false,
+          duration: 15,
+          jointStatus: "Joints Felt Great & Loose",
+          notes: "Cloud hands felt very natural."
+        },
+        {
+          date: formatDateOffset(today, -2),
+          time: "08:15",
+          bpContext: "Morning (pre-meds)",
+          systolic: 122,
+          diastolic: 78,
+          pulse: 69,
+          weight: 168.4,
+          unit: 'lbs',
+          medsMorning: true,
+          medsEvening: true,
+          sleepRating: "4",
+          taiChi: false,
+          bike: true,
+          weights: false,
+          duration: 12,
+          jointStatus: "Joints Felt Great & Loose",
+          notes: "Stationary bike 12 minutes. Comfortable."
+        },
+        {
+          date: formatDateOffset(today, -1),
+          time: "08:25",
+          bpContext: "Morning (pre-meds)",
+          systolic: 121,
+          diastolic: 77,
+          pulse: 68,
+          weight: 168.2,
+          unit: 'lbs',
+          medsMorning: true,
+          medsEvening: true,
+          sleepRating: "5",
+          taiChi: true,
+          bike: false,
+          weights: false,
+          duration: 15,
+          jointStatus: "Joints Felt Great & Loose",
+          notes: "Deep diaphragmatic breathing."
+        },
+        {
+          date: formatDateOffset(today, 0),
+          time: "08:15",
+          bpContext: "Morning (pre-meds)",
+          systolic: 120,
+          diastolic: 76,
+          pulse: 67,
+          weight: 168.0,
+          unit: 'lbs',
+          medsMorning: true,
+          medsEvening: false,
+          sleepRating: "5",
+          taiChi: true,
+          bike: true,
+          weights: false,
+          duration: 18,
+          jointStatus: "Joints Felt Great & Loose",
+          notes: "Combined 8 min bike warmup + 10 min tai chi."
+        }
+      ];
+      await db.vitals.bulkAdd(initialLogs);
+
+      const initialMeals = [
+        {
+          date: formatDateOffset(today, 0),
+          time: "08:30",
+          type: "Breakfast",
+          desc: "Warm rolled oatmeal with banana slices, walnuts, and cinnamon.",
+          image: null,
+          analysis: {
+            title: "Oatmeal & Walnuts",
+            calories: 340,
+            protein: 11,
+            carbs: 54,
+            fat: 9,
+            fiber: 7,
+            sodiumLevel: "Very Low",
+            sodiumMg: 12,
+            heartNotes: "Soluble fiber supports cholesterol, walnuts offer healthy fats.",
+            seniorTip: "Low-sodium breakfast keeps blood pressure steady for morning movement."
+          }
+        },
+        {
+          date: formatDateOffset(today, 0),
+          time: "12:30",
+          type: "Lunch",
+          desc: "Baked Atlantic salmon with lemon, steamed broccoli, and brown rice.",
+          image: null,
+          analysis: {
+            title: "Baked Salmon & Greens",
+            calories: 450,
+            protein: 36,
+            carbs: 32,
+            fat: 18,
+            fiber: 6,
+            sodiumLevel: "Low Sodium (Heart Safe)",
+            sodiumMg: 180,
+            heartNotes: "Omega-3 fatty acids relax arterial walls.",
+            seniorTip: "36g of protein preserves muscle mass for dumbbell and tai chi workouts."
+          }
+        }
+      ];
+      await db.meals.bulkAdd(initialMeals);
+
+      const initialHydration = [
+        { date: formatDateOffset(today, -6), cupsCount: 7 },
+        { date: formatDateOffset(today, -5), cupsCount: 8 },
+        { date: formatDateOffset(today, -4), cupsCount: 6 },
+        { date: formatDateOffset(today, -3), cupsCount: 8 },
+        { date: formatDateOffset(today, -2), cupsCount: 7 },
+        { date: formatDateOffset(today, -1), cupsCount: 8 },
+        { date: formatDateOffset(today, 0), cupsCount: 6 }
+      ];
+      await db.hydration.bulkAdd(initialHydration);
+
+      const initialMilestones = [
+        {
+          date: formatDateOffset(today, -6),
+          type: "30-Sec Chair Stand",
+          score: "11 stands",
+          details: "Baseline count. Quads felt steady."
+        },
+        {
+          date: formatDateOffset(today, -6),
+          type: "Single-Leg Balance",
+          score: "8.2 seconds",
+          details: "Left leg balance with chair within reach."
+        }
+      ];
+      await db.milestones.bulkAdd(initialMilestones);
+    }
+
+    async function loadSampleBaseline() {
+      if (!confirm('This will ERASE the readings, meals and tests saved on this device and replace them with sample data. Continue?')) return;
+      await db.vitals.clear();
+      await db.meals.clear();
+      await db.hydration.clear();
+      await db.milestones.clear();
+      await seedInitialDB();
+      await loadAllDataFromDB();
+      renderWaterTracker();
+      renderMealsList();
+      renderReports();
+      renderMilestonesList();
+      showToast("Sample Data Loaded", "Sample records are now showing. Back up first if you had real data.");
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+      // Update bottom icons
+      ['quest', 'today', 'log', 'meals', 'reports'].forEach(id => {
+        const iconBtn = document.getElementById(`tab-${id}-icon`);
+        if (iconBtn) {
+          if (id === tabId) {
+            iconBtn.classList.remove('text-warmgray-500');
+            iconBtn.classList.add('text-brand-700');
+          } else {
+            iconBtn.classList.remove('text-brand-700');
+            iconBtn.classList.add('text-warmgray-500');
+          }
+        }
+      });
+
+      const selectedSection = document.getElementById(`section-${tabId}`);
+      if (selectedSection) selectedSection.classList.remove('hidden');
+
+      if (tabId === 'reports') {
+        setTimeout(renderReports, 50);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function toggleTrophyModal() {
+      document.getElementById('trophy-modal').classList.toggle('hidden');
+    }
+
+    function toggleAlarmModal() {
+      document.getElementById('alarm-modal').classList.toggle('hidden');
+    }
+
+    function toggleVaultModal() {
+      document.getElementById('vault-modal').classList.toggle('hidden');
+    }
+
+    function toggleApiKeyModal() {
+      const modal = document.getElementById('api-key-modal');
+      modal.classList.toggle('hidden');
+      if (!modal.classList.contains('hidden')) {
+        document.getElementById('custom-api-key-input').value = userApiKey;
+      }
+    }
+
+    function toggleMobileNavDrawer() {
+      document.getElementById('mobile-nav-drawer').classList.toggle('hidden');
+      document.getElementById('mobile-nav-drawer').classList.toggle('flex');
+    }
+
+    function saveApiKey() {
+      const val = document.getElementById('custom-api-key-input').value.trim();
+      userApiKey = val;
+      localStorage.setItem('golden_pace_gemini_key', val);
+      toggleApiKeyModal();
+      showToast("Settings Saved", "Gemini API key updated.");
+    }
+
+    let toastTimer = null;
+    function showToast(title, msg, opts = {}) {
+      const banner = document.getElementById('toast-banner');
+      document.getElementById('toast-title').textContent = title;
+      document.getElementById('toast-message').textContent = msg;
+
+      banner.classList.remove('translate-y-24', 'opacity-0');
+      banner.classList.add('translate-y-0', 'opacity-100');
+
+      // A newer toast must not be hidden early by an older toast's timer.
+      clearTimeout(toastTimer);
+      if (!opts.sticky) toastTimer = setTimeout(hideToast, 5000);
+    }
+
+    function hideToast() {
+      const banner = document.getElementById('toast-banner');
+      banner.classList.remove('translate-y-0', 'opacity-100');
+      banner.classList.add('translate-y-24', 'opacity-0');
+    }
+
+    /* =========================================================
+       6. HYDRATION TRACKER
+       ========================================================= */
+    function renderWaterTracker() {
+      const todayKey = getTodayKey();
+      const count = waterLog[todayKey] || 0;
+      const target = 8;
+
+      const container = document.getElementById('water-glasses-row');
+      if (!container) return;
+      container.innerHTML = '';
+
+      for (let i = 1; i <= target; i++) {
+        const isFilled = i <= count;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('aria-label', `Cup ${i}${isFilled ? ', drunk' : ', not yet'}`);
+        btn.setAttribute('aria-pressed', String(isFilled));
+        btn.onclick = () => setWaterCount(isFilled && i === count ? count - 1 : i);
+        btn.className = `p-2 rounded-xl border-2 flex flex-col items-center justify-center transition-transform active:scale-95 ${
+          isFilled
+            ? 'bg-blue-600 border-blue-700 text-white shadow-sm'
+            : 'bg-white border-warmgray-200 text-warmgray-600'
+        }`;
+        btn.innerHTML = `
+          <span class="text-xl" aria-hidden="true">${isFilled ? '🥛' : '🫙'}</span>
+          <span class="text-xs font-bold mt-0.5">#${i}</span>
+        `;
+        container.appendChild(btn);
+      }
+
+      document.getElementById('water-cup-count').textContent = `${count} / ${target}`;
+      const pct = Math.min(100, Math.round((count / target) * 100));
+      document.getElementById('water-progress-bar').style.width = `${pct}%`;
+    }
+
+    async function setWaterCount(newCount) {
+      const todayKey = getTodayKey();
+      const validCount = Math.max(0, Math.min(12, newCount));
+      waterLog[todayKey] = validCount;
+      await db.hydration.put({ date: todayKey, cupsCount: validCount });
+
+      // Quest rewards live here (an action), not inside the render function.
+      if (validCount >= 8 && !playerStats.dailyQuests["quest_water"]) {
+        completeQuest("quest_water");
+        unlockBadge("hydration_hero");
+        await saveGamification();
+        renderChecklistUI();
+      }
+      renderWaterTracker();
+      renderReports();
+    }
+
+    async function logBeverage(type) {
+      const count = (waterLog[getTodayKey()] || 0) + 1;
+      await setWaterCount(count);
+      showToast("Hydration Logged", `+1 Cup of ${type} added.`);
+    }
+
+    /* =========================================================
+       7. MEAL LOGGING & GEMINI 2.5 FLASH AI NUTRITION
+       ========================================================= */
+    // Phone photos are often 3-8 MB. Shrink to ~1024px JPEG before storing/sending.
+    function downscaleImage(file, maxDim = 1024, quality = 0.8) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.width * scale));
+          c.height = Math.max(1, Math.round(img.height * scale));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(url);
+          resolve(c.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image could not be read')); };
+        img.src = url;
+      });
+    }
+
+    async function handleImageSelection(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        selectedMealImageBase64 = await downscaleImage(file);
+      } catch (e) {
+        selectedMealImageBase64 = await new Promise(res => {
+          const r = new FileReader();
+          r.onload = ev => res(ev.target.result);
+          r.readAsDataURL(file);
+        });
+      }
+      document.getElementById('meal-preview-img').src = selectedMealImageBase64;
+      document.getElementById('upload-prompt-view').classList.add('hidden');
+      document.getElementById('upload-preview-view').classList.remove('hidden');
+    }
+
+    function clearMealImage() {
+      selectedMealImageBase64 = null;
+      document.getElementById('meal-image-input').value = '';
+      document.getElementById('upload-preview-view').classList.add('hidden');
+      document.getElementById('upload-prompt-view').classList.remove('hidden');
+    }
+
+    function loadSampleMeal() {
+      document.getElementById('meal-type-select').value = "Dinner";
+      document.getElementById('meal-desc-input').value = "Grilled chicken breast, steamed spinach, baked sweet potato wedges, olive oil.";
+      clearMealImage();
+    }
+
+    async function handleMealSubmit(event) {
+      event.preventDefault();
+
+      const type = document.getElementById('meal-type-select').value;
+      const time = document.getElementById('meal-time-input').value || new Date().toTimeString().slice(0, 5);
+      const desc = document.getElementById('meal-desc-input').value.trim();
+
+      if (!selectedMealImageBase64 && !desc) {
+        showToast("Notice", "Please take a photo or type a description.");
+        return;
+      }
+
+      const btn = document.getElementById('btn-analyze-meal');
+      const btnText = document.getElementById('analyze-btn-text');
+      btn.disabled = true;
+      btnText.textContent = "AI Analyzing...";
+
+      let analysis = null;
+      let failure = null;
+      try {
+        analysis = await queryGeminiNutrition(type, desc, selectedMealImageBase64);
+      } catch (err) {
+        console.error("Gemini analysis error:", err);
+        failure = err;
+      }
+
+      try {
+        // The meal is always saved. If the AI could not answer, NO nutrition numbers are
+        // invented: the entry is stored honestly as "not analyzed".
+        const newMeal = {
+          date: getTodayKey(),
+          time,
+          type,
+          desc: desc || analysis?.title || `${type} (photo)`,
+          image: selectedMealImageBase64,
+          analysis,
+          analysisSource: analysis ? 'gemini' : 'none'
+        };
+        const id = await db.meals.add(newMeal);
+        newMeal.id = id;
+        meals.unshift(newMeal);
+
+        if (analysis) {
+          displayAIAnalysisResult(analysis);
+          completeQuest("quest_meal_ai", btn);
+          if (typeof analysis.sodiumMg === 'number' && analysis.sodiumMg <= LOW_SODIUM_MEAL_MG) unlockBadge("mindful_plate");
+          await saveGamification();
+          renderChecklistUI();
+        } else {
+          document.getElementById('ai-result-container').classList.add('hidden');
+          const why = (failure && failure.message === 'NO_KEY')
+            ? 'Add your Gemini key in Settings to get nutrition estimates.'
+            : 'The nutrition AI could not be reached. Check your key and connection.';
+          showToast("Meal saved without analysis", why);
+        }
+
+        renderMealsList();
+        renderReports();
+        document.getElementById('meal-desc-input').value = '';
+        clearMealImage();
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = "Analyze Meal with Gemini AI (+40 XP)";
+      }
+    }
+
+    function normalizeAnalysis(a) {
+      const n = v => (Number.isFinite(+v) ? Math.max(0, Math.round(+v)) : 0);
+      return {
+        title: String(a.title || 'Meal'),
+        calories: n(a.calories),
+        protein: n(a.protein),
+        carbs: n(a.carbs),
+        fat: n(a.fat),
+        fiber: n(a.fiber),
+        sodiumLevel: String(a.sodiumLevel || 'Unknown'),
+        sodiumMg: a.sodiumMg == null ? null : n(a.sodiumMg),
+        heartNotes: String(a.heartNotes || ''),
+        seniorTip: String(a.seniorTip || '')
+      };
+    }
+
+    async function queryGeminiNutrition(mealType, description, base64Image) {
+      if (!userApiKey) throw new Error('NO_KEY');
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(userApiKey)}`;
+
+      const systemPrompt = `You are a clinical geriatric dietitian and cardiovascular wellness coach specializing in healthy aging for adults 70+.
+Analyze the user's meal. Output strictly valid JSON conforming to the requested schema.
+Assess for senior nutrition:
+1. Adequate protein to prevent muscle loss (sarcopenia).
+2. Estimated sodium level relative to blood pressure management.
+3. Cardiovascular and arterial impact.
+4. An encouraging, friendly piece of advice.`;
+
+      const userTextPrompt = `Please evaluate this ${mealType}: "${description || 'Please identify the food in this image'}". Estimate calories, protein, carbs, fat, fiber, and sodium.`;
+
+      const parts = [{ text: userTextPrompt }];
+      if (base64Image) {
+        parts.push({
+          inlineData: {
+            mimeType: base64Image.split(';')[0].replace('data:', '') || 'image/jpeg',
+            data: base64Image.split(',')[1]
+          }
+        });
+      }
+
+      const payload = {
+        contents: [{ role: "user", parts }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              title: { type: "STRING" },
+              calories: { type: "INTEGER" },
+              protein: { type: "INTEGER" },
+              carbs: { type: "INTEGER" },
+              fat: { type: "INTEGER" },
+              fiber: { type: "INTEGER" },
+              sodiumLevel: { type: "STRING" },
+              sodiumMg: { type: "INTEGER" },
+              heartNotes: { type: "STRING" },
+              seniorTip: { type: "STRING" }
+            },
+            required: ["title", "calories", "protein", "carbs", "fat", "fiber", "sodiumLevel", "heartNotes", "seniorTip"]
+          }
+        }
+      };
+
+      let delay = 1000;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 30000);
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: ctrl.signal
+          });
+          clearTimeout(timer);
+          if (!response.ok) {
+            const err = new Error(`HTTP ${response.status}`);
+            // A bad key or bad request will not fix itself: do not retry those.
+            err.fatal = response.status >= 400 && response.status < 500 && response.status !== 429;
+            throw err;
+          }
+          const result = await response.json();
+          const textPart = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!textPart) throw new Error('Empty model response');
+          return normalizeAnalysis(JSON.parse(textPart));
+        } catch (e) {
+          clearTimeout(timer);
+          if (e.fatal || attempt === 1) throw e;
+          await new Promise(r => setTimeout(r, delay));
+          delay *= 2;
+        }
+      }
+    }
+
+
+    function displayAIAnalysisResult(analysis) {
+      const container = document.getElementById('ai-result-container');
+      container.classList.remove('hidden');
+
+      document.getElementById('ai-meal-title').textContent = analysis.title;
+      document.getElementById('ai-macro-cal').textContent = `${analysis.calories || 0} kcal`;
+      document.getElementById('ai-macro-protein').textContent = `${analysis.protein || 0} g`;
+      document.getElementById('ai-macro-fiber').textContent = `${analysis.fiber || 0} g`;
+
+      const sodiumBadge = document.getElementById('ai-sodium-badge');
+      sodiumBadge.textContent = `${analysis.sodiumLevel} (${analysis.sodiumMg ? analysis.sodiumMg + 'mg' : 'Balanced'})`;
+      
+      document.getElementById('ai-heart-notes').textContent = analysis.heartNotes;
+      document.getElementById('ai-senior-tip').textContent = analysis.seniorTip;
+
+      container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function renderMealsList() {
+      const container = document.getElementById('meals-history-container');
+      if (!container) return;
+      container.innerHTML = '';
+      document.getElementById('meal-count-badge').textContent = `${meals.length} meals`;
+
+      if (meals.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-sm text-warmgray-600 bg-warmgray-50 rounded-xl">No meals recorded yet. Snap a photo above!</div>`;
+        return;
+      }
+
+      meals.slice(0, 5).forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'p-3 bg-warmgray-50 border border-warmgray-200 rounded-xl flex items-center justify-between gap-2';
+
+        const src = safeImageSrc(m.image);
+        const imageHTML = src
+          ? `<img src="${src}" alt="Photo of your meal" class="w-12 h-12 rounded-lg object-cover border border-warmgray-300 flex-shrink-0">`
+          : `<div class="w-12 h-12 rounded-lg bg-brand-100 text-brand-800 font-bold flex items-center justify-center text-xl flex-shrink-0" aria-hidden="true">🍽</div>`;
+        const kcal = m.analysis ? `${Number(m.analysis.calories) || 0} kcal` : 'Not analyzed';
+
+        item.innerHTML = `
+          <div class="flex items-center gap-2 overflow-hidden">
+            ${imageHTML}
+            <div class="truncate">
+              <span class="text-xs font-bold text-brand-800 bg-brand-100 px-1.5 py-0.5 rounded">${escapeHTML(m.type)}</span>
+              <h4 class="font-bold text-sm text-warmgray-900 truncate mt-0.5">${escapeHTML(m.analysis?.title || m.desc)}</h4>
+              <span class="text-xs text-warmgray-600">${escapeHTML(m.date)} • ${kcal}</span>
+            </div>
+          </div>
+          <button type="button" aria-label="Remove this meal" class="text-sm text-rose-600 font-bold p-1">✕</button>
+        `;
+        item.querySelector('button').addEventListener('click', () => deleteMeal(m.id));
+        container.appendChild(item);
+      });
+    }
+
+    async function deleteMeal(id) {
+      if (!confirm('Remove this meal from your history?')) return;
+      await db.meals.delete(id);
+      meals = meals.filter(m => m.id !== id);
+      renderMealsList();
+      renderReports();
+    }
+
+    /* =========================================================
+       8. WORKOUT TIMERS & CONTROLS
+       ========================================================= */
+    function renderScheduledDay(dayNumber) {
+      currentRoutineDay = parseInt(dayNumber, 10);
+      const routine = weeklyRoutines[currentRoutineDay] || weeklyRoutines[1];
+
+      document.getElementById('day-title').textContent = routine.title;
+      document.getElementById('day-desc').textContent = routine.desc;
+      document.getElementById('stat-target-time').textContent = routine.targetTime;
+      document.getElementById('stat-intensity').textContent = routine.intensity;
+      document.getElementById('stat-equip').textContent = routine.equip;
+
+      currentStepIndex = 0;
+      loadStep(currentStepIndex);
+    }
+
+    function loadStep(index) {
+      const routine = weeklyRoutines[currentRoutineDay] || weeklyRoutines[1];
+      const steps = routine.steps;
+      if (index < 0) index = 0;
+      if (index >= steps.length) index = steps.length - 1;
+      currentStepIndex = index;
+
+      const step = steps[currentStepIndex];
+      document.getElementById('guide-step-counter').textContent = `Step ${currentStepIndex + 1} of ${steps.length}`;
+      document.getElementById('guide-category-tag').textContent = step.category;
+      document.getElementById('guide-exercise-title').textContent = step.title;
+      document.getElementById('guide-exercise-desc').textContent = step.desc;
+      document.getElementById('guide-coach-tip').textContent = step.tip;
+      document.getElementById('exercise-svg-container').innerHTML = getExerciseSVG(step.svgType);
+
+      resetTimer(step.duration);
+
+      const btn = document.getElementById('btn-complete-step');
+      btn.classList.remove('bg-brand-600', 'text-white', 'border-brand-700');
+      btn.classList.add('bg-warmgray-100', 'text-brand-800', 'border-brand-200');
+      document.getElementById('step-check-icon').textContent = '⚪';
+    }
+
+    function guideNextStep() {
+      const routine = weeklyRoutines[currentRoutineDay];
+      if (currentStepIndex < routine.steps.length - 1) {
+        loadStep(currentStepIndex + 1);
+      }
+    }
+
+    function guidePrevStep() {
+      if (currentStepIndex > 0) {
+        loadStep(currentStepIndex - 1);
+      }
+    }
+
+    async function markCurrentStepDone() {
+      const btn = document.getElementById('btn-complete-step');
+      btn.classList.remove('bg-warmgray-100', 'text-brand-800', 'border-brand-200');
+      btn.classList.add('bg-brand-600', 'text-white', 'border-brand-700');
+      document.getElementById('step-check-icon').textContent = '✅';
+
+      // Pays once per step per day, however many times the button is pressed.
+      awardOnce(`step:${currentRoutineDay}:${currentStepIndex}`, 15, btn);
+
+      const routine = weeklyRoutines[currentRoutineDay];
+      const step = routine.steps[currentStepIndex];
+      if (step.category.includes('Tai Chi')) {
+        const c = document.getElementById('log-check-taichi');
+        if (c) c.checked = true;
+      } else if (step.category.includes('Bike')) {
+        const c = document.getElementById('log-check-bike');
+        if (c) c.checked = true;
+      } else if (step.category.includes('Dumbbell') || step.category.includes('Strength')) {
+        const c = document.getElementById('log-check-weights');
+        if (c) c.checked = true;
+      }
+
+      if (!playerStats.dailyQuests["quest_workout"]) completeQuest("quest_workout", btn);
+      await saveGamification();
+      renderChecklistUI();
+    }
+
+    function formatTime(totalSec) {
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateTimerDisplay() {
+      document.getElementById('timer-display').textContent = formatTime(timerSeconds);
+    }
+
+    function toggleTimer() {
+      if (isTimerRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    }
+
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator && !wakeLock) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => { wakeLock = null; });
+        }
+      } catch (e) { /* not supported or denied: the timer still works */ }
+    }
+
+    function releaseWakeLock() {
+      try { wakeLock?.release(); } catch (e) {}
+      wakeLock = null;
+    }
+
+    function startTimer() {
+      if (timerSeconds <= 0) timerSeconds = timerTotal;
+      isTimerRunning = true;
+      document.getElementById('timer-btn-icon').textContent = '⏸';
+      document.getElementById('timer-btn-text').textContent = 'Pause';
+
+      // Based on the clock, not on counting ticks, so it stays accurate when the phone
+      // throttles background tabs or the screen dims.
+      timerEndAt = Date.now() + timerSeconds * 1000;
+      requestWakeLock();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(tickTimer, 250);
+      tickTimer();
+    }
+
+    function tickTimer() {
+      const remaining = Math.max(0, Math.ceil((timerEndAt - Date.now()) / 1000));
+      if (remaining !== timerSeconds) {
+        timerSeconds = remaining;
+        updateTimerDisplay();
+        const elapsed = timerTotal - timerSeconds;
+        document.getElementById('breathing-text').textContent = (elapsed % 8 >= 4)
+          ? "Exhale slowly and smoothly (release shoulders)..."
+          : "Inhale gently through nose (expand abdomen)...";
+      }
+      if (remaining <= 0) {
+        pauseTimer();
+        document.getElementById('timer-btn-text').textContent = 'Start Again';
+        markCurrentStepDone();
+        playChimeSound('alert');
+        showToast("Session Complete", "Great job finishing this step!");
+      }
+    }
+
+    function pauseTimer() {
+      isTimerRunning = false;
+      clearInterval(timerInterval);
+      releaseWakeLock();
+      document.getElementById('timer-btn-icon').textContent = '▶';
+      document.getElementById('timer-btn-text').textContent = 'Resume';
+    }
+
+    function resetTimer(customDuration) {
+      pauseTimer();
+      if (customDuration !== undefined) {
+        timerTotal = customDuration;
+      }
+      timerSeconds = timerTotal;
+      updateTimerDisplay();
+      document.getElementById('timer-btn-text').textContent = 'Start Timer';
+    }
+
+    /* =========================================================
+       9. FUNCTIONAL TESTS (CDC CHAIR STAND & BALANCE)
+       ========================================================= */
+    let chairTestSeconds = 30;
+    let chairTestReps = 0;
+    let chairTestInterval = null;
+    let isChairTestRunning = false;
+    let chairRemainingMs = 30000;
+    let chairEndAt = 0;
+    let chairFinished = false;
+    let chairRecordSaved = false;
+
+    function toggleChairTest() {
+      const btn = document.getElementById('btn-chair-test-start');
+      const timerEl = document.getElementById('chair-test-timer');
+
+      if (isChairTestRunning) {
+        clearInterval(chairTestInterval);
+        chairRemainingMs = Math.max(0, chairEndAt - Date.now());
+        isChairTestRunning = false;
+        btn.textContent = "Resume Test";
+        return;
+      }
+
+      if (chairFinished || chairRemainingMs <= 0) {
+        chairRemainingMs = 30000;
+        chairTestReps = 0;
+        chairFinished = false;
+        chairRecordSaved = false;
+        document.getElementById('chair-test-reps').textContent = "0";
+        timerEl.textContent = "30s";
+      }
+
+      isChairTestRunning = true;
+      btn.textContent = "Pause";
+      playChimeSound('chime');
+      chairEndAt = Date.now() + chairRemainingMs;
+
+      // Clock-based so the 30 seconds are a true 30 seconds (the old tick counter ran 31).
+      chairTestInterval = setInterval(() => {
+        const ms = chairEndAt - Date.now();
+        chairTestSeconds = Math.max(0, Math.ceil(ms / 1000));
+        timerEl.textContent = `${chairTestSeconds}s`;
+        if (ms <= 0) {
+          clearInterval(chairTestInterval);
+          isChairTestRunning = false;
+          chairFinished = true;
+          chairRemainingMs = 0;
+          btn.textContent = "Test Complete!";
+          playChimeSound('alert');
+          showToast("Test Finished", `Completed ${chairTestReps} chair stands!`);
+        }
+      }, 100);
+    }
+
+    function incrementChairReps() {
+      if (!isChairTestRunning) {
+        showToast("Start the timer first", "Stands only count while the 30 seconds are running.");
+        return;
+      }
+      chairTestReps++;
+      document.getElementById('chair-test-reps').textContent = chairTestReps;
+    }
+
+    function decrementChairReps() {
+      if (chairTestReps > 0) chairTestReps--;
+      document.getElementById('chair-test-reps').textContent = chairTestReps;
+    }
+
+    async function saveChairTestRecord() {
+      if (isChairTestRunning) {
+        showToast("Test still running", "Wait for the 30 seconds to finish, then save.");
+        return;
+      }
+      if (chairTestReps === 0) {
+        showToast("Notice", "Record repetitions completed before saving.");
+        return;
+      }
+      if (chairRecordSaved) {
+        showToast("Already saved", "Start a new test to record another result.");
+        return;
+      }
+      const newRecord = {
+        date: getTodayKey(),
+        type: "30-Sec Chair Stand",
+        score: `${chairTestReps} stands`,
+        details: `Completed in 30 seconds.`
+      };
+      newRecord.id = await db.milestones.add(newRecord);
+      chairRecordSaved = true;
+      milestones.unshift(newRecord);
+      renderMilestonesList();
+      awardOnce('test:chair', 30);
+      await saveGamification();
+      showToast("Milestone Saved", "Chair stand test recorded.");
+    }
+
+    let balanceStartTimestamp = 0;
+    let balanceInterval = null;
+    let isBalanceRunning = false;
+    let finalBalanceSeconds = 0;
+    let balanceRecordSaved = false;
+
+    function toggleBalanceTest() {
+      const btn = document.getElementById('btn-balance-start');
+      if (isBalanceRunning) {
+        clearInterval(balanceInterval);
+        isBalanceRunning = false;
+        // Take the exact stop time, not the last 100 ms display refresh.
+        finalBalanceSeconds = ((performance.now() - balanceStartTimestamp) / 1000).toFixed(1);
+        document.getElementById('balance-test-timer').textContent = `${finalBalanceSeconds}s`;
+        btn.textContent = "Start Again";
+        playChimeSound('alert');
+      } else {
+        isBalanceRunning = true;
+        balanceRecordSaved = false;
+        finalBalanceSeconds = 0;
+        btn.textContent = "Stop / Foot Down";
+        playChimeSound('chime');
+        showToast("Safety first", "Stand right beside a sturdy counter or chair.");
+        balanceStartTimestamp = performance.now();
+
+        balanceInterval = setInterval(() => {
+          const elapsed = (performance.now() - balanceStartTimestamp) / 1000;
+          document.getElementById('balance-test-timer').textContent = `${elapsed.toFixed(1)}s`;
+        }, 100);
+      }
+    }
+
+    async function saveBalanceTestRecord() {
+      if (isBalanceRunning) {
+        showToast("Stopwatch still running", "Tap Stop when your foot comes down, then save.");
+        return;
+      }
+      if (!finalBalanceSeconds || finalBalanceSeconds === "0.0") {
+        showToast("Notice", "Run stopwatch before saving.");
+        return;
+      }
+      if (balanceRecordSaved) {
+        showToast("Already saved", "Start the stopwatch again to record another result.");
+        return;
+      }
+      const leg = document.getElementById('balance-leg-select').value;
+      const newRecord = {
+        date: getTodayKey(),
+        type: "Single-Leg Balance",
+        score: `${finalBalanceSeconds} seconds`,
+        details: `${leg} balance test.`
+      };
+      newRecord.id = await db.milestones.add(newRecord);
+      balanceRecordSaved = true;
+      milestones.unshift(newRecord);
+      renderMilestonesList();
+      awardOnce('test:balance', 30);
+      await saveGamification();
+      showToast("Balance Logged", `${leg} balance saved.`);
+    }
+
+    function renderMilestonesList() {
+      const container = document.getElementById('milestones-history-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (milestones.length === 0) {
+        container.innerHTML = `<div class="p-3 text-warmgray-600 bg-warmgray-50 rounded-xl text-center">No milestone tests recorded yet.</div>`;
+        return;
+      }
+
+      milestones.slice(0, 3).forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'p-2.5 bg-warmgray-50 border border-warmgray-200 rounded-xl flex items-center justify-between';
+        div.innerHTML = `
+          <div>
+            <span class="font-bold text-warmgray-900 block">${escapeHTML(m.type)}: <span class="text-brand-800">${escapeHTML(m.score)}</span></span>
+            <span class="text-xs text-warmgray-600">${escapeHTML(m.date)}</span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    /* =========================================================
+       10. BLOOD PRESSURE & DAILY LOG FORM
+       ========================================================= */
+    function evaluateBP(sys, dia) {
+      if (!sys || !dia) return { label: 'Incomplete', color: 'bg-warmgray-200 text-warmgray-800' };
+
+      // Safety first: a very high reading needs action, not just a colour.
+      if (sys >= 180 || dia >= 120) {
+        return {
+          label: 'Very high (180/120 or above): rest 5 minutes and recheck. Call your doctor now. Call emergency services (911 in the U.S.) if you have chest pain, weakness, or trouble speaking.',
+          color: 'bg-rose-200 text-rose-900 border-rose-500'
+        };
+      }
+      if (sys < 120 && dia < 80) {
+        return { label: 'Normal / Optimal BP (<120 / <80)', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+      } else if (sys >= 120 && sys <= 129 && dia < 80) {
+        return { label: 'Elevated BP (120–129 / <80)', color: 'bg-amberlead-100 text-amberlead-800 border-amberlead-300' };
+      } else if ((sys >= 130 && sys <= 139) || (dia >= 80 && dia <= 89)) {
+        return { label: 'Stage 1 (130–139 / 80–89)', color: 'bg-orange-100 text-orange-800 border-orange-300' };
+      }
+      return { label: 'Stage 2 (≥140 / ≥90)', color: 'bg-rose-100 text-rose-800 border-rose-300' };
+    }
+
+    function evaluateBPLive() {
+      const sys = parseInt(document.getElementById('bp-systolic').value, 10);
+      const dia = parseInt(document.getElementById('bp-diastolic').value, 10);
+      const pill = document.getElementById('bp-indicator-pill');
+
+      if (!sys || !dia) {
+        pill.textContent = 'Enter numbers above';
+        pill.className = 'text-sm font-bold px-3 py-1 rounded-full bg-warmgray-100 text-warmgray-700';
+        return;
+      }
+
+      const evalResult = evaluateBP(sys, dia);
+      pill.textContent = evalResult.label;
+      pill.className = `block text-sm font-bold px-3 py-1.5 rounded-2xl border leading-snug ${evalResult.color}`;
+    }
+
+    function setWeightUnit(unit) {
+      currentUnit = unit;
+      const btnLbs = document.getElementById('btn-unit-lbs');
+      const btnKg = document.getElementById('btn-unit-kg');
+
+      if (unit === 'lbs') {
+        btnLbs.className = 'px-3 py-1 rounded-lg bg-white shadow-sm text-brand-800 font-bold';
+        btnKg.className = 'px-3 py-1 rounded-lg text-warmgray-700 font-semibold';
+      } else {
+        btnKg.className = 'px-3 py-1 rounded-lg bg-white shadow-sm text-brand-800 font-bold';
+        btnLbs.className = 'px-3 py-1 rounded-lg text-warmgray-700 font-semibold';
+      }
+    }
+
+    async function handleLogSubmit(event) {
+      event.preventDefault();
+      const submitBtn = event.submitter || null;
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const date = document.getElementById('log-date').value;
+        const time = document.getElementById('log-time').value || new Date().toTimeString().slice(0, 5);
+        const bpContext = document.getElementById('log-bp-context').value;
+        const systolic = parseInt(document.getElementById('bp-systolic').value, 10);
+        const diastolic = parseInt(document.getElementById('bp-diastolic').value, 10);
+        const pulse = parseInt(document.getElementById('bp-pulse').value, 10) || null;
+        const weightVal = parseFloat(document.getElementById('body-weight').value) || null;
+        const duration = parseInt(document.getElementById('log-duration').value, 10) || 0;
+        const medsMorning = document.getElementById('meds-morning').checked;
+        const medsEvening = document.getElementById('meds-evening').checked;
+        const sleepRating = document.getElementById('log-sleep-rating').value;
+        const jointStatus = document.getElementById('log-joint-status').value;
+        const notes = document.getElementById('log-notes').value.trim();
+        const taiChi = document.getElementById('log-check-taichi').checked;
+        const bike = document.getElementById('log-check-bike').checked;
+        const weights = document.getElementById('log-check-weights').checked;
+
+        if (!(systolic > diastolic)) {
+          showToast("Please double-check", "The top number (systolic) should be higher than the bottom number (diastolic).");
+          return;
+        }
+
+        const newEntry = {
+          date, time, bpContext, systolic, diastolic, pulse,
+          weight: weightVal, unit: currentUnit,
+          medsMorning, medsEvening, sleepRating, jointStatus,
+          taiChi, bike, weights, duration,
+          notes   // stored exactly as typed; no filler text is added to a clinical record
+        };
+
+        // One record per date AND timing context, so an evening reading no longer
+        // overwrites the morning reading from the same day.
+        const existing = await db.vitals.where('date').equals(date)
+          .filter(e => (e.bpContext || '') === bpContext).first();
+        if (existing) await db.vitals.update(existing.id, newEntry);
+        else await db.vitals.add(newEntry);
+
+        await loadAllDataFromDB();
+
+        const notification = document.getElementById('save-notification');
+        notification.classList.remove('hidden');
+        setTimeout(() => notification.classList.add('hidden'), 5000);
+        showToast("Vitals Logged", "Saved on this device.");
+
+        // Rewards (each pays once per day) and quest ticks driven by what was really logged
+        awardOnce('log', 30, submitBtn);
+        if (bpContext.includes('Morning')) {
+          completeQuest("quest_bp_am");
+          if (time < '09:00') unlockBadge("morning_bird");   // matches the badge text: before 9:00 AM
+        }
+        if (medsMorning) completeQuest("quest_meds_am");
+        if (medsEvening) completeQuest("quest_meds_pm");
+        if (bpContext.includes('Evening') || bpContext.includes('Bedtime')) completeQuest("quest_bp_pm");
+        if (duration > 0 || taiChi || bike || weights) completeQuest("quest_workout");
+
+        if (bike && duration >= 15) unlockBadge("cardio_captain");
+        if (logs.filter(l => l.taiChi || l.weights).length >= 5) unlockBadge("iron_willow");
+        if (hasLoggedConsecutiveDays(7)) unlockBadge("doctors_champion");
+
+        await saveGamification();
+        renderChecklistUI();
+        renderReports();
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    }
+
+    /* =========================================================
+       11. CHARTS & DOCTOR REPORTING
+       ========================================================= */
+    const charts = {};
+
+    // Create once, then just update the data: no more destroying and rebuilding four
+    // charts on every water tap.
+    function upsertChart(key, canvasId, config) {
+      const el = document.getElementById(canvasId);
+      if (!el || typeof Chart === 'undefined') return;
+      if (charts[key]) {
+        charts[key].data = config.data;
+        charts[key].update('none');
+      } else {
+        charts[key] = new Chart(el, config);
+      }
+    }
+
+    function chartOptions(extra = {}) {
+      return { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, ...extra };
+    }
+
+    function last7Keys() {
+      return Array.from({ length: 7 }, (_, i) => formatDateOffset(new Date(), -(6 - i)));
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+
+    function toLbs(entry) {
+      return entry.unit === 'kg' ? Math.round(entry.weight * 2.20462 * 10) / 10 : entry.weight;
+    }
+
+    function renderReports() {
+      const keys7 = last7Keys();
+      const waterTotal = keys7.reduce((sum, k) => sum + (waterLog[k] || 0), 0);
+      setText('kpi-avg-water', (waterTotal / 7).toFixed(1));
+
+      if (!logs || logs.length === 0) return;
+
+      // "Last 7 days" now means seven calendar days, not the last seven entries.
+      const recentSet = new Set(keys7);
+      const recentLogs = logs.filter(l => recentSet.has(l.date));
+      const activeDays = new Set(recentLogs.filter(l => l.duration > 0 || l.taiChi || l.bike || l.weights).map(l => l.date)).size;
+      setText('kpi-sessions-count', activeDays);
+
+      const validBPs = recentLogs.filter(l => l.systolic && l.diastolic);
+      if (validBPs.length > 0) {
+        const avgSys = Math.round(validBPs.reduce((a, c) => a + c.systolic, 0) / validBPs.length);
+        const avgDia = Math.round(validBPs.reduce((a, c) => a + c.diastolic, 0) / validBPs.length);
+        setText('kpi-avg-bp', `${avgSys} / ${avgDia}`);
+        const r = evaluateBP(avgSys, avgDia);
+        const badge = document.getElementById('kpi-bp-badge');
+        if (badge) badge.textContent = r.label.split(':')[0].replace(/ \(.*/, '');
+      } else {
+        setText('kpi-avg-bp', '—');
+      }
+
+      const validPulses = recentLogs.filter(l => l.pulse);
+      setText('kpi-avg-pulse', validPulses.length
+        ? Math.round(validPulses.reduce((a, c) => a + c.pulse, 0) / validPulses.length)
+        : '—');
+
+      const container = document.getElementById('vitals-vertical-history');
+      if (!container) return;
+      container.innerHTML = '';
+
+      [...logs].reverse().slice(0, 10).forEach(entry => {
+        const div = document.createElement('div');
+        div.className = 'p-3.5 bg-warmgray-50 border border-warmgray-200 rounded-xl flex flex-col space-y-2';
+
+        const modalities = [];
+        if (entry.taiChi) modalities.push('Tai Chi');
+        if (entry.bike) modalities.push('Bike');
+        if (entry.weights) modalities.push('Weights');
+        const modalText = modalities.length > 0 ? modalities.join(', ') : 'Rest';
+        const meds = [entry.medsMorning ? 'AM taken' : '', entry.medsEvening ? 'PM taken' : ''].filter(Boolean).join(', ') || 'None';
+
+        div.innerHTML = `
+          <div class="flex items-center justify-between border-b pb-1.5">
+            <div>
+              <span class="font-bold text-sm text-warmgray-900">${escapeHTML(entry.date)}</span>
+              <span class="text-xs text-warmgray-600 block">${escapeHTML(entry.time || '')} • ${escapeHTML(entry.bpContext || 'Morning')}</span>
+            </div>
+            <span class="text-sm font-bold px-2 py-0.5 rounded bg-brand-100 text-brand-900">${modalText} (${Number(entry.duration) || 0}m)</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-center text-sm">
+            <div class="bg-white p-2 rounded-lg border">
+              <span class="text-xs text-warmgray-600 block">Blood Pressure</span>
+              <span class="font-bold text-rose-800">${Number(entry.systolic) || '—'}/${Number(entry.diastolic) || '—'}</span>
+            </div>
+            <div class="bg-white p-2 rounded-lg border">
+              <span class="text-xs text-warmgray-600 block">Pulse</span>
+              <span class="font-bold">${entry.pulse ? Number(entry.pulse) + ' bpm' : '—'}</span>
+            </div>
+            <div class="bg-white p-2 rounded-lg border">
+              <span class="text-xs text-warmgray-600 block">Weight</span>
+              <span class="font-bold">${entry.weight ? Number(entry.weight) + ' ' + escapeHTML(entry.unit || 'lbs') : '—'}</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-sm text-warmgray-700 pt-1">
+            <span>Meds: <strong>${meds}</strong></span>
+            <span>Joints: <strong>${escapeHTML(entry.jointStatus?.split(' ')[0] || 'Good')}</strong></span>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      // Charts only need building once the Reports tab is actually on screen
+      // (Chart.js cannot size a canvas inside a hidden section).
+      const section = document.getElementById('section-reports');
+      if (section && !section.classList.contains('hidden')) {
+        renderBPChart();
+        renderWeightChart();
+        renderActivityChart();
+        renderHydrationChart();
+      }
+    }
+
+    function renderBPChart() {
+      const rows = logs.slice(-30);
+      upsertChart('bp', 'bpChart', {
+        type: 'line',
+        data: {
+          labels: rows.map(l => l.date.slice(5)),
+          datasets: [
+            { label: 'Systolic', data: rows.map(l => l.systolic), borderColor: '#e11d48', backgroundColor: 'rgba(225, 29, 72, 0.1)', borderWidth: 3, pointRadius: 4, tension: 0.2 },
+            { label: 'Diastolic', data: rows.map(l => l.diastolic), borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.1)', borderWidth: 3, pointRadius: 4, tension: 0.2 }
+          ]
+        },
+        options: chartOptions({ scales: { y: { min: 60, max: 160 } } })
+      });
+    }
+
+    function renderWeightChart() {
+      // Entries can be in lbs or kg; convert so the line never jumps when the unit changes.
+      const rows = logs.filter(l => l.weight !== null && l.weight !== undefined).slice(-30);
+      upsertChart('weight', 'weightChart', {
+        type: 'line',
+        data: {
+          labels: rows.map(l => l.date.slice(5)),
+          datasets: [{ label: 'Weight (lbs)', data: rows.map(toLbs), borderColor: '#347a57', backgroundColor: 'rgba(52, 122, 87, 0.15)', fill: true, borderWidth: 3, tension: 0.2 }]
+        },
+        options: chartOptions()
+      });
+    }
+
+    function renderActivityChart() {
+      const rows = logs.slice(-30);
+      upsertChart('activity', 'activityChart', {
+        type: 'bar',
+        data: {
+          labels: rows.map(l => l.date.slice(5)),
+          datasets: [{ label: 'Minutes', data: rows.map(l => l.duration || 0), backgroundColor: '#286244', borderRadius: 6 }]
+        },
+        options: chartOptions()
+      });
+    }
+
+    function renderHydrationChart() {
+      // Shows the last 7 calendar days, including days with water but no vitals entry.
+      const keys = last7Keys();
+      upsertChart('hydration', 'hydrationChart', {
+        type: 'bar',
+        data: {
+          labels: keys.map(k => k.slice(5)),
+          datasets: [{ label: 'Cups', data: keys.map(k => waterLog[k] || 0), backgroundColor: '#2563eb', borderRadius: 6 }]
+        },
+        options: chartOptions({ scales: { y: { beginAtZero: true, max: 10 } } })
+      });
+    }
+
+    function csvText(v) {
+      let str = String(v ?? '');
+      if (/^[=+\-@\t\r]/.test(str)) str = "'" + str;   // stop spreadsheet formula injection
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+
+    function exportCSV() {
+      if (!logs || logs.length === 0) {
+        showToast("Nothing to export", "Log a reading first.");
+        return;
+      }
+
+      const header = "Date,Time,Context,Systolic,Diastolic,Pulse,Weight,Unit,MorningMeds,EveningMeds,SleepRating,JointStatus,WaterCups,TaiChi,Bike,Weights,DurationMinutes,Notes";
+      const lines = logs.map(row => [
+        csvText(row.date),
+        csvText(row.time || ''),
+        csvText(row.bpContext || 'Morning'),
+        row.systolic || '',
+        row.diastolic || '',
+        row.pulse || '',
+        row.weight || '',
+        csvText(row.unit || 'lbs'),
+        row.medsMorning ? 'Yes' : 'No',
+        row.medsEvening ? 'Yes' : 'No',
+        row.sleepRating || '',
+        csvText(row.jointStatus || ''),
+        waterLog[row.date] || 0,
+        row.taiChi ? 'Yes' : 'No',
+        row.bike ? 'Yes' : 'No',
+        row.weights ? 'Yes' : 'No',
+        row.duration || 0,
+        csvText(row.notes || '')
+      ].join(","));
+
+      // Blob download: the old data-URI approach cut the file off at the first "#" in any note.
+      // The BOM makes Excel read accented letters and symbols correctly.
+      const blob = new Blob(['\uFEFF' + header + '\n' + lines.join('\n') + '\n'], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Golden_Pace_Clinical_Report_${getTodayKey()}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    /* =========================================================
+       12. ALARMS & TIME MONITOR
+       ========================================================= */
+    const defaultReminders = [
+      { id: 'rem-bp-morning', title: 'Morning Blood Pressure & Pulse', time: '08:00', enabled: true, sound: 'chime' },
+      { id: 'rem-meds-am', title: 'Morning Prescriptions / BP Meds', time: '08:30', enabled: true, sound: 'alert' },
+      { id: 'rem-movement', title: 'Chair Tai Chi or Stationary Bike', time: '10:00', enabled: true, sound: 'chime' },
+      { id: 'rem-water-pm', title: 'Afternoon Hydration Check (4+ Cups)', time: '14:00', enabled: true, sound: 'chime' },
+      { id: 'rem-meds-pm', title: 'Evening Prescriptions & Rest', time: '20:30', enabled: true, sound: 'alert' }
+    ];
+
+    async function initReminders() {
+      const stored = await db.reminders.toArray();
+      if (!stored || stored.length === 0) {
+        await db.reminders.bulkAdd(defaultReminders);
+        reminders = defaultReminders;
+      } else {
+        reminders = stored;
+      }
+      renderRemindersList();
+    }
+
+    function renderRemindersList() {
+      const container = document.getElementById('alarms-list-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const note = document.createElement('p');
+      note.className = 'text-sm text-warmgray-800 bg-amberlead-50 border border-amberlead-100 rounded-xl p-3';
+      note.textContent = 'Alarms sound only while Golden Pace is open on your screen. Keep this page open, and also set an alarm on your phone or clock for important medicines.';
+      container.appendChild(note);
+
+      let activeCount = 0;
+      reminders.forEach(rem => {
+        if (rem.enabled) activeCount++;
+        const div = document.createElement('div');
+        div.className = 'flex flex-col space-y-1.5 p-3 bg-warmgray-50 border border-warmgray-200 rounded-2xl';
+        div.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-sm text-warmgray-900">${escapeHTML(rem.title)}</span>
+            <button type="button" data-role="toggle" aria-pressed="${!!rem.enabled}" class="px-3 py-1 text-sm font-bold rounded-xl transition ${
+              rem.enabled ? 'bg-brand-600 text-white' : 'bg-warmgray-200 text-warmgray-700'
+            }">${rem.enabled ? 'ON' : 'OFF'}</button>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-warmgray-600">Alarm Time:</span>
+            <input type="time" value="${escapeHTML(rem.time)}" aria-label="Alarm time for ${escapeHTML(rem.title)}" class="text-sm font-mono p-1 border rounded-lg">
+          </div>
+        `;
+        div.querySelector('[data-role=toggle]').addEventListener('click', () => toggleReminderState(rem.id));
+        div.querySelector('input').addEventListener('change', e => updateReminderTime(rem.id, e.target.value));
+        container.appendChild(div);
+      });
+
+      const badge = document.getElementById('active-alarms-badge');
+      if (badge) badge.classList.toggle('hidden', activeCount === 0);
+    }
+
+    async function toggleReminderState(id) {
+      const rem = reminders.find(r => r.id === id);
+      if (rem) {
+        rem.enabled = !rem.enabled;
+        await db.reminders.put(rem);
+        renderRemindersList();
+      }
+    }
+
+    async function updateReminderTime(id, newTime) {
+      const rem = reminders.find(r => r.id === id);
+      if (rem && newTime) {
+        rem.time = newTime;
+        await db.reminders.put(rem);
+        renderRemindersList();
+      }
+    }
+
+    let lastCheckedMinute = "";
+    setInterval(() => {
+      const now = new Date();
+      const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      if (currentHM !== lastCheckedMinute) {
+        lastCheckedMinute = currentHM;
+        reminders.forEach(r => {
+          if (r.enabled && r.time === currentHM) {
+            playChimeSound('alert');
+            showToast("⏰ Golden Pace Reminder", r.title, { sticky: true });
+          }
+        });
+      }
+    }, 15000);
+
+    /* =========================================================
+       13. VAULT BACKUP & RESTORE
+       ========================================================= */
+    async function exportVaultBackup() {
+      try {
+        const backupVault = {
+          app: "Golden Pace",
+          exportDate: new Date().toISOString(),
+          version: "3.1",
+          vitals: await db.vitals.toArray(),
+          meals: await db.meals.toArray(),
+          hydration: await db.hydration.toArray(),
+          milestones: await db.milestones.toArray(),
+          reminders: await db.reminders.toArray(),
+          gamification: await db.gamification.toArray()
+        };
+
+        const blob = new Blob([JSON.stringify(backupVault, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Golden_Pace_Vault_Backup_${getTodayKey()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        try { localStorage.setItem('golden_pace_last_backup', String(Date.now())); } catch (e) {}
+        showToast("Backup Saved", "Your backup file was downloaded.");
+      } catch (err) {
+        console.error("Backup export failed:", err);
+        showToast("Backup failed", "Your backup could not be created. Please try again.");
+      }
+    }
+
+    async function triggerRestoreBackup() {
+      const fileInput = document.getElementById('restore-file-input');
+      const file = fileInput.files[0];
+      if (!file) {
+        showToast("Choose a file", "Please select a .json backup file first.");
+        return;
+      }
+      if (!confirm('Restoring REPLACES everything saved on this device with the contents of this backup file. Continue?')) return;
+
+      try {
+        const data = JSON.parse(await file.text());
+        const list = k => (Array.isArray(data[k]) ? data[k].filter(r => r && typeof r === 'object') : null);
+        if (!list('vitals') && !list('meals')) {
+          throw new Error("File does not appear to be a valid Golden Pace Vault file.");
+        }
+
+        // All-or-nothing: if anything fails, the transaction rolls back and current data is untouched.
+        await db.transaction('rw', db.vitals, db.meals, db.hydration, db.milestones, db.reminders, db.gamification, async () => {
+          await Promise.all([db.vitals.clear(), db.meals.clear(), db.hydration.clear(), db.milestones.clear()]);
+          if (list('vitals')) await db.vitals.bulkPut(list('vitals'));
+          if (list('meals')) await db.meals.bulkPut(list('meals'));
+          if (list('hydration')) await db.hydration.bulkPut(list('hydration'));
+          if (list('milestones')) await db.milestones.bulkPut(list('milestones'));
+          if (list('reminders')) { await db.reminders.clear(); await db.reminders.bulkPut(list('reminders')); }
+          if (list('gamification')) { await db.gamification.clear(); await db.gamification.bulkPut(list('gamification')); }
+        });
+
+        toggleVaultModal();
+        await initGamification();
+        await initReminders();
+        await loadAllDataFromDB();
+        renderWaterTracker();
+        renderMealsList();
+        renderReports();
+        renderMilestonesList();
+        showToast("Vault Restored", "Records restored from file.");
+      } catch (err) {
+        console.error("Restore failed:", err);
+        showToast("Restore failed", "That file could not be restored. Your current records were not changed.");
+      }
+    }
+
+    window.onload = function() {
+      initApp();
+    };
+  </script>
+</body>
+</html>
