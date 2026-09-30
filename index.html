@@ -187,6 +187,14 @@
     <span>Profile: <strong id="profile-bar-name" class="text-white"></strong></span>
     <button type="button" onclick="openProfileModal()" class="underline font-bold text-amberlead-400" style="min-height:44px">Profile &amp; Lock</button>
   </div>
+  <div id="backup-banner" class="hidden no-print bg-amberlead-100 border-b-2 border-amberlead-400 text-warmgray-900 px-4 py-3" role="region" aria-label="Backup reminder">
+    <p class="font-bold text-lg">💾 Time to save a backup</p>
+    <p id="backup-banner-msg" class="text-base">Your records live only on this device. A backup file keeps them safe if you clear your browser or switch phones.</p>
+    <div class="flex flex-wrap gap-2 mt-2">
+      <button type="button" onclick="backupBannerSave()" class="bg-brand-600 text-white font-bold px-4 rounded-xl" style="min-height:48px">Save backup now</button>
+      <button type="button" onclick="backupBannerLater()" class="bg-white border-2 border-warmgray-400 text-warmgray-900 font-bold px-4 rounded-xl" style="min-height:48px">Remind me later</button>
+    </div>
+  </div>
 
   <!-- Slide-Up Navigation Menu Drawer (100% Vertical) -->
   <div id="mobile-nav-drawer" class="fixed inset-0 bg-black/60 z-50 hidden flex-col justify-end transition-opacity">
@@ -2300,11 +2308,34 @@
 
     function checkBackupNudge() {
       try {
+        const now = Date.now();
         const last = Number(lsGet(pkey('last_backup')) || 0);
-        if (logs.length > 0 && Date.now() - last > 7 * 86400000) {
-          setTimeout(() => showToast('Time for a backup', 'Open the Vault menu and save a backup file so your records stay safe.'), 1500);
+        const snooze = Number(lsGet(pkey('backup_snooze')) || 0);
+        const first = Number(lsGet(pkey('first_seen')) || 0);
+        if (!first) { lsSet(pkey('first_seen'), String(now)); }
+        // Start reminding once there are records and the last save (or first use) is over 7 days old.
+        const since = last || first || now;
+        const due = logs.length + meals.length > 0 && now - since > 7 * 86400000 && now > snooze;
+        const el = document.getElementById('backup-banner');
+        if (!el) return;
+        el.classList.toggle('hidden', !due);
+        if (due) {
+          const days = Math.floor((now - since) / 86400000);
+          document.getElementById('backup-banner-msg').textContent = (last
+            ? `Your last backup was ${days} days ago. `
+            : 'You have not saved a backup yet. ')
+            + 'Your records live only on this device. A backup file keeps them safe if you clear your browser or switch phones.';
         }
       } catch (e) {}
+    }
+    async function backupBannerSave() {
+      await exportVaultBackup();
+      checkBackupNudge();
+    }
+    function backupBannerLater() {
+      lsSet(pkey('backup_snooze'), String(Date.now() + 3 * 86400000));
+      checkBackupNudge();
+      showToast('OK', 'We will remind you again in 3 days.');
     }
 
     function showFirstRunHint() {
@@ -3786,7 +3817,8 @@ Assess for senior nutrition:
         setTimeout(() => URL.revokeObjectURL(url), 1000);
 
         lsSet(pkey('last_backup'), String(Date.now()));
-        showToast("Backup Saved", "Your backup file was downloaded.");
+        showToast("Backup Saved", "Your backup file was downloaded. Keep it somewhere safe, like your email or cloud drive.");
+        try { checkBackupNudge(); } catch (e) {}
       } catch (err) {
         console.error("Backup export failed:", err);
         showToast("Backup failed", "Your backup could not be created. Please try again.");
