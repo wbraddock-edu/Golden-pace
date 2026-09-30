@@ -3793,14 +3793,13 @@ Assess for senior nutrition:
       }
     }
 
-    async function triggerRestoreBackup() {
-      const fileInput = document.getElementById('restore-file-input');
-      const file = fileInput.files[0];
+    async function triggerRestoreBackup(presetFile) {
+      const file = presetFile instanceof File ? presetFile : document.getElementById('restore-file-input').files[0];
       if (!file) {
         showToast("Choose a file", "Please select a .json backup file first.");
         return;
       }
-      if (!confirm('Restoring REPLACES everything saved on this device with the contents of this backup file. Continue?')) return;
+      if (!(presetFile instanceof File) && !confirm('Restoring REPLACES everything saved on this device with the contents of this backup file. Continue?')) return;
 
       try {
         const data = JSON.parse(await file.text());
@@ -3820,7 +3819,7 @@ Assess for senior nutrition:
           if (list('gamification')) { await db.gamification.clear(); await db.gamification.bulkPut(list('gamification')); }
         });
 
-        toggleVaultModal();
+        if (!document.getElementById('vault-modal').classList.contains('hidden')) toggleVaultModal();
         await initGamification();
         await initReminders();
         await loadAllDataFromDB();
@@ -4135,6 +4134,11 @@ Assess for senior nutrition:
           <h1 class="text-2xl font-black text-brand-900">${first ? 'Welcome to Golden Pace' : 'Add a profile'}</h1>
           <p class="text-lg text-warmgray-700">${first ? 'Let\'s set up your profile.' : 'Each person gets private records of their own.'}</p>
         </div>
+        ${first ? `<div class="rounded-2xl bg-amberlead-50 border-2 border-amberlead-400 p-4 space-y-2 text-base text-warmgray-900">
+          <p class="font-bold text-lg">There is no login or password.</p>
+          <p>Golden Pace keeps your records <b>on this device only</b>, so there is no account to sign in to. Your name below is just a label, and your PIN (optional) only locks this device.</p>
+          <p><b>Used Golden Pace before?</b> Your records stay in the place you used it (the same phone and the same icon or browser). A home-screen icon and a web browser on the same phone keep separate records. If you saved a backup file, you can bring your records in below.</p>
+        </div>` : ''}
         <form id="gate-create-form" class="bg-white border-2 border-warmgray-200 rounded-2xl p-4 space-y-4" novalidate>
           <div>
             <label for="gate-name" class="block font-bold text-warmgray-900 mb-1">Your name</label>
@@ -4168,6 +4172,11 @@ Assess for senior nutrition:
             </div>
             <p class="text-base text-warmgray-600">Write your PIN down somewhere safe. It cannot be recovered if you forget it.</p>
           </div>
+          ${first ? `<div class="p-3 rounded-xl border border-warmgray-300 bg-warmgray-50 space-y-1">
+            <label for="gate-restore" class="block font-bold text-warmgray-900">Have a backup file? (optional)</label>
+            <p class="text-base text-warmgray-700">Choose the .json file you saved from the Vault menu and your records come back after you create your profile.</p>
+            <input id="gate-restore" type="file" accept=".json,application/json" class="block w-full text-base text-warmgray-700 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:font-bold file:bg-brand-100 file:text-brand-800">
+          </div>` : ''}
           <label class="flex items-start gap-3 p-3 rounded-xl bg-brand-50 border border-brand-200">
             <input id="gate-consent" type="checkbox" class="w-6 h-6 mt-0.5 flex-shrink-0">
             <span class="text-base">I have read and agree to the
@@ -4211,7 +4220,10 @@ Assess for senior nutrition:
           };
           gateProfiles = [...loadProfiles(), p];
           saveProfiles(gateProfiles);
+          const restoreEl = el.querySelector('#gate-restore');
+          const restoreFile = restoreEl && restoreEl.files && restoreEl.files[0];
           await startSession(p);
+          if (restoreFile) await triggerRestoreBackup(restoreFile);
         } catch (ex) {
           console.error(ex);
           err.textContent = 'Sorry, the profile could not be created on this device.';

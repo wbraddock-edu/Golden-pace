@@ -1,6 +1,6 @@
 // Golden Pace service worker: offline-first app shell.
 // VERSION is stamped automatically by tools/build.js.
-const VERSION = 'dec28720c4e1';
+const VERSION = 'f98179c2bd38';
 const CACHE = `golden-pace-${VERSION}`;
 const SHELL = [
   './',
