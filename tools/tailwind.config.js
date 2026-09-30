@@ -43,5 +43,5 @@ module.exports = Object.assign({
         }
       }
     }, {
-  content: ['../index.html', '../privacy.html', '../terms.html', '../faq.html']
+  content: ['../index.html', '../privacy.html', '../terms.html', '../faq.html','../welcome.html']
 });
