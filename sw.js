@@ -1,6 +1,6 @@
 // Golden Pace service worker: offline-first app shell.
 // VERSION is stamped automatically by tools/build.js.
-const VERSION = 'd96fb730b1f4';
+const VERSION = 'dec28720c4e1';
 const CACHE = `golden-pace-${VERSION}`;
 const SHELL = [
   './',
@@ -41,6 +41,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   // Never touch other sites (the Gemini nutrition call must always go to the network).
   if (url.origin !== self.location.origin) return;
+  // Signup, downloads and admin pages are live server responses; never serve them from the cache.
+  if (/^\/(api|admin|guide)\//.test(url.pathname) || url.pathname === '/healthz') return;
 
   // Cache first for speed and offline use, refreshed in the background.
   event.respondWith(

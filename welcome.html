@@ -34,6 +34,17 @@
   <style>
     html, body { background:#fcfbfa; color:#1c1a16; font-size:18px; line-height:1.6; -webkit-font-smoothing:antialiased; }
     a:focus-visible, button:focus-visible { outline:4px solid #1e4b34; outline-offset:2px; }
+    [hidden]{display:none!important}
+    .gwrap { display:grid; gap:1.25rem; grid-template-columns:1fr; align-items:start; }
+    @media (min-width:560px){ .gwrap { grid-template-columns:200px 1fr; } }
+    .gwrap img { width:100%; max-width:220px; height:auto; border-radius:.6rem; box-shadow:0 10px 24px rgba(0,0,0,.25); margin:0 auto; }
+    #guide-form label { display:block; font-weight:700; margin:.75rem 0 .3rem; }
+    #guide-form input[type=email] { width:100%; min-height:56px; font-size:1.15rem; padding:.6rem .9rem; border:3px solid #163827; border-radius:.75rem; background:#fff; color:#1c1a16; }
+    #guide-form button { width:100%; min-height:60px; margin-top:.9rem; font-size:1.25rem; font-weight:900; background:#163827; color:#fff; border:0; border-radius:.9rem; cursor:pointer; }
+    #guide-form button[disabled] { opacity:.6; cursor:wait; }
+    #guide-form .hp { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+    #guide-msg { margin-top:.75rem; font-weight:700; }
+    #guide-msg.err { color:#9a2f06; }
     .hl { background:#fbbf24; color:#163827; padding:0 .25em; border-radius:.2em; }
     .cta { display:flex; align-items:center; justify-content:center; min-height:64px; font-size:1.35rem; font-weight:900; border-radius:1rem; text-align:center; padding:.75rem 1.25rem; }
     @media print { .no-print { display:none !important; } }
@@ -56,6 +67,7 @@
         <p class="text-xl">Golden Pace is a free daily tracker for blood pressure, weight, water, meals and gentle exercise. Big buttons. Big text. No account. Your records stay on <em>your</em> phone.</p>
         <div class="space-y-3 pt-2">
           <a href="./" class="cta bg-amberlead-400 text-brand-900">Start Free &rarr;</a>
+          <a href="#guide" data-guide hidden class="cta border-4 border-amberlead-400 text-white">📘 Get the free guide</a>
           <p class="text-base text-brand-100">Works in your browser. No sign-up. No credit card. Nothing to install (but you can).</p>
         </div>
       </div>
@@ -66,6 +78,32 @@
       <div class="max-w-2xl mx-auto px-5 py-6 space-y-2">
         <h2 id="disc1" class="text-2xl font-black text-brand-900">⚠️ Talk to your doctor first.</h2>
         <p class="text-lg"><strong>Check with your primary care physician before you start any exercise program</strong>, including the routines in this app. This is especially important if you have a heart condition, high or low blood pressure, diabetes, dizziness, joint or balance problems, take medication, or have not been active lately. Stop and get medical help if you feel chest pain, trouble breathing, faintness, or sudden weakness. In an emergency, call 911 (in the U.S.).</p>
+      </div>
+    </section>
+
+    <!-- FREE GUIDE SIGNUP (hidden until the server reports that email delivery is set up) -->
+    <section id="guide" data-guide hidden class="bg-brand-100 border-b-4 border-brand-200" aria-labelledby="guide-h">
+      <div class="max-w-2xl mx-auto px-5 py-10">
+        <div class="gwrap">
+          <img src="guide-cover.png" width="300" height="450" alt="Cover of the free ebook, Know Your Numbers, Keep Your Pace">
+          <div>
+            <p class="font-bold uppercase tracking-wide" style="color:#b45309">Free ebook</p>
+            <h2 id="guide-h" class="text-3xl font-black text-brand-900">Get the free Golden Pace Guide</h2>
+            <p class="text-lg mt-2">12 short chapters on blood pressure, gentle exercise, water, meals, balance and privacy, plus a 7-day starter plan and questions to ask your doctor. About 5 minutes a chapter, in big, easy print.</p>
+            <div id="guide-done" hidden class="mt-4 p-4 rounded-2xl bg-white border-4 border-brand-600" role="status">
+              <p class="text-2xl font-black text-brand-900">✅ Check your email</p>
+              <p class="mt-1 text-lg" id="guide-done-text">We sent your guide. It can take a few minutes to arrive. Please look in your spam or junk folder too.</p>
+            </div>
+            <form id="guide-form" novalidate>
+              <label for="guide-email">Your email address</label>
+              <input id="guide-email" name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required placeholder="name@example.com" aria-describedby="guide-msg guide-fine">
+              <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+              <button type="submit" id="guide-btn">Email me the free guide</button>
+              <p id="guide-msg" role="status" aria-live="polite"></p>
+            </form>
+            <p id="guide-fine" class="text-base text-warmgray-700 mt-3">We will email the guide to this address, and only that. We never sell or share your address, and every email has a one-click link to remove it. See our <a class="underline font-semibold text-brand-700" href="privacy.html">Privacy Policy</a>.</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -115,8 +153,8 @@
       <!-- PRIVACY -->
       <section class="space-y-4">
         <h2 class="text-3xl font-black text-brand-900">Your data is yours. Period.</h2>
-        <p class="text-xl">No account. No email. No sign-up. Your records are stored <strong>on your own device</strong>, not on our servers. We don't sell anything because we don't have anything to sell.</p>
-        <p class="text-lg text-warmgray-700">One honest note: if you choose the optional meal-photo analysis, the meal description or photo is sent to Google's Gemini service to get an estimate. Skip that feature and nothing leaves your phone. Read the details in the <a class="underline font-semibold text-brand-700" href="privacy.html">Privacy Policy</a>.</p>
+        <p class="text-xl">The app has no account and no sign-up, and it never asks for your email. Your health records are stored <strong>on your own device</strong>, not on our servers, so we have nothing to sell. The only time we ask for an email address is if you choose to request the free guide, and we use it only to send you that guide.</p>
+        <p class="text-lg text-warmgray-700">One honest note: the optional meal analysis uses your own Google Gemini key, and the meal description or photo you analyze is sent to Google to get an estimate. Skip that feature and nothing leaves your phone. Read the details in the <a class="underline font-semibold text-brand-700" href="privacy.html">Privacy Policy</a>.</p>
       </section>
 
       <!-- WHO IT'S FOR / NOT FOR -->
@@ -169,5 +207,47 @@
       <p class="text-center">Golden Pace is a wellness logbook, not medical advice. Check with your physician before starting any exercise program.</p>
     </div>
   </footer>
+  <script>
+    (function () {
+      var form = document.getElementById('guide-form');
+      if (!form) return;
+      var msg = document.getElementById('guide-msg'), btn = document.getElementById('guide-btn'), email = document.getElementById('guide-email');
+      var done = document.getElementById('guide-done'), doneText = document.getElementById('guide-done-text');
+      function say(t, bad) { msg.textContent = t || ''; msg.className = bad ? 'err' : ''; }
+      // Show the signup only when the server says it can really send email.
+      fetch('/api/guide-status', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+        if (j && j.enabled) {
+          document.querySelectorAll('[data-guide]').forEach(function (el) { el.hidden = false; });
+          if (location.hash === '#guide') { var g = document.getElementById('guide'); if (g) g.scrollIntoView(); }
+        }
+      }).catch(function () {});
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        say('');
+        var v = (email.value || '').trim();
+        if (!v || !email.checkValidity()) { say('Please type your email address, like name@example.com.', true); email.focus(); return; }
+        btn.disabled = true; btn.textContent = 'Sending…';
+        fetch('/api/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: v, website: form.elements.website.value }) })
+          .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, body: j }; }); })
+          .then(function (res) {
+            if (res.status === 200 && res.body.ok) {
+              form.hidden = true;
+              doneText.textContent = res.body.state === 'recent'
+                ? 'We already sent it to ' + v + ' a moment ago. Please check your inbox and your spam or junk folder.'
+                : 'We sent your guide to ' + v + '. It can take a few minutes to arrive. Please look in your spam or junk folder too.';
+              done.hidden = false; done.scrollIntoView({ block: 'center' });
+              return;
+            }
+            var code = res.body && res.body.error;
+            say(code === 'invalid_email' ? 'That email address does not look right. Please check it and try again.'
+              : res.status === 429 ? 'Too many tries. Please wait a few minutes and try again.'
+              : 'We could not send the email right now. Please try again in a little while.', true);
+          })
+          .catch(function () { say('We could not connect. Please check your internet and try again.', true); })
+          .then(function () { btn.disabled = false; btn.textContent = 'Email me the free guide'; });
+      });
+    })();
+  </script>
 </body>
 </html>

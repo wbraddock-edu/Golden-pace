@@ -48,3 +48,14 @@ never part of this repository.
 
 ## Third-party libraries (all MIT licensed)
 Tailwind CSS (build only), Chart.js, Dexie.js, canvas-confetti.
+
+## Server and free-guide signup
+
+The site is served by `server.js` (Node 20+, one dependency: nodemailer). It serves the static app from an allow-list and adds the optional "free guide" email signup.
+
+- The signup form on `welcome.html` stays hidden until the server reports it is configured (`/api/guide-status`).
+- The guide PDF lives in `private/` and is never served directly. People receive a signed link (14 days) by email, so fake addresses get nothing.
+- Environment variables: `SMTP_HOST`, `SMTP_PORT` (465 = SSL, otherwise STARTTLS), `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` (required); `SITE_URL`, `ADMIN_TOKEN`, `SIGNING_SECRET`, `DAILY_EMAIL_CAP` (optional); `DATA_DIR` (defaults to `/data` if it exists, else `./data`).
+- Mount a persistent volume at `/data` so subscribers and the signing key survive deploys.
+- Subscriber export: `/admin/subscribers.csv` (HTTP Basic, password = `ADMIN_TOKEN`).
+- Each email has a one-click removal link.
