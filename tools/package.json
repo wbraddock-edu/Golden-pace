@@ -1,0 +1,14 @@
+{
+  "name": "golden-pace-build-tools",
+  "private": true,
+  "description": "Build-time tools only. The app itself is plain static files at the repo root.",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17",
+    "dexie": "3.2.7",
+    "chart.js": "4.4.7",
+    "canvas-confetti": "1.6.0"
+  }
+}

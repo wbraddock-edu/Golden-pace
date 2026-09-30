@@ -1,0 +1,16 @@
+{
+  "name": "Golden Pace: Daily Vitality & Wellness Tracker",
+  "short_name": "Golden Pace",
+  "description": "A private daily tracker for blood pressure, exercise, hydration and meals.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fcfbfa",
+  "theme_color": "#163827",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
