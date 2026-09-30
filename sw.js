@@ -1,9 +1,10 @@
 // Golden Pace service worker: offline-first app shell.
 // VERSION is stamped automatically by tools/build.js.
-const VERSION = '86fbd15a81c9';
+const VERSION = '626f58ad80d2';
 const CACHE = `golden-pace-${VERSION}`;
 const SHELL = [
   './',
+  'app',
   'index.html',
   'privacy.html',
   'terms.html',
@@ -55,7 +56,10 @@ self.addEventListener('fetch', event => {
       if (cached) { event.waitUntil(refresh); return cached; }
       const fresh = await refresh;
       if (fresh) return fresh;
-      if (req.mode === 'navigate') return (await cache.match('index.html')) || Response.error();
+      if (req.mode === 'navigate') {
+        const toApp = url.pathname === '/app';
+        return (await cache.match(toApp ? 'app' : 'welcome.html')) || (await cache.match('index.html')) || Response.error();
+      }
       return Response.error();
     })
   );

@@ -295,7 +295,8 @@ function resolveStatic(urlPath) {
   let p;
   try { p = decodeURIComponent(urlPath); } catch (_) { return null; }
   if (p.includes('\0') || p.includes('\\')) return null;
-  if (p === '/' || p === '') p = '/index.html';
+  if (p === '/' || p === '') p = '/welcome.html';
+  else if (p === '/app') p = '/index.html';
   const segs = p.split('/').filter(Boolean);
   if (!segs.length || segs.some(s => s === '..' || s.startsWith('.'))) return null;
   const rel = segs.join('/');
@@ -308,12 +309,12 @@ function resolveStatic(urlPath) {
   return { abs, rel, ext };
 }
 function serveStatic(req, res, pathname) {
+  if (pathname === '/index.html') return send(res, 301, '', { Location: '/', 'Cache-Control': 'no-cache' });
   const f = resolveStatic(pathname);
   let st;
   try { st = f && fs.statSync(f.abs); } catch (_) { st = null; }
   if (!f || !st || !st.isFile()) {
-    const nf = path.join(ROOT, 'index.html');
-    return send(res, 404, '<!doctype html><meta charset="utf-8"><title>Not found</title><body style="font:18px Arial;padding:2rem"><h1>Page not found</h1><p><a href="/">Go to Golden Pace</a></p>', { 'Content-Type': 'text/html; charset=utf-8' });
+        return send(res, 404, '<!doctype html><meta charset="utf-8"><title>Not found</title><body style="font:18px Arial;padding:2rem"><h1>Page not found</h1><p><a href="/">Go to Golden Pace</a></p>', { 'Content-Type': 'text/html; charset=utf-8' });
   }
   const etag = `W/"${st.size.toString(16)}-${Math.floor(st.mtimeMs).toString(16)}"`;
   const noCache = ['.html', '.css', '.webmanifest'].includes(f.ext) || f.rel === 'sw.js';

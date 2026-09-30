@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script>/* The welcome page is always the first thing seen in a visit. */try{if(!sessionStorage.getItem("gp_seen_welcome")){location.replace("/");}}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
   <title>Golden Pace: Daily Vitality & Wellness Tracker</title>
   
@@ -9,7 +10,7 @@
   <meta name="description" content="Golden Pace is a free, private daily health tracker for adults 55+: blood pressure, weight, water, meals and gentle guided exercise. Works offline. No account.">
   <meta name="keywords" content="health tracker for seniors, blood pressure log, blood pressure tracker, senior wellness app, chair exercises for seniors, chair tai chi, gentle exercise for older adults, daily health log, hydration tracker, meal tracker, healthy aging, senior fitness, balance exercises for seniors, 30 second chair stand test, private health tracker, offline health app, free health app, adults 55+, Golden Pace">
   <meta name="author" content="William Braddock">
-  <meta name="robots" content="index, follow">
+  <meta name="robots" content="noindex, follow">
   <link rel="canonical" href="https://golden-pace-web-production.up.railway.app/">
   <link rel="icon" href="favicon.ico" sizes="48x48">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -4159,7 +4160,7 @@ Assess for senior nutrition:
           renderLogin('You are offline. Please connect to the internet to sign in.');
           return;
         }
-        renderLogin();
+        if (location.hash === '#create') renderCreate(); else renderLogin();
       } catch (err) {
         console.error('Startup failed:', err);
         showFatal('Golden Pace could not open its storage on this device. If you are in a private or incognito window, please open it in a normal window.');
