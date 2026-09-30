@@ -21,7 +21,7 @@ const vendor = {
 };
 for (const [out, src] of Object.entries(vendor)) fs.copyFileSync(path.join(nm, src), path.join(root, 'vendor', out));
 
-const files = ['index.html', 'styles.css', 'manifest.webmanifest', ...Object.keys(vendor).map(f => 'vendor/' + f)];
+const files = ['index.html', 'privacy.html', 'terms.html', 'faq.html', 'styles.css', 'manifest.webmanifest', ...Object.keys(vendor).map(f => 'vendor/' + f)];
 const hash = crypto.createHash('sha256');
 for (const f of files) hash.update(fs.readFileSync(path.join(root, f)));
 const version = hash.digest('hex').slice(0, 12);

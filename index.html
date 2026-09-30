@@ -162,6 +162,12 @@
     </div>
   </header>
 
+  <!-- Who is using the app right now -->
+  <div id="profile-bar" class="bg-brand-900 text-brand-100 text-base px-4 py-1 flex items-center justify-between no-print">
+    <span>Profile: <strong id="profile-bar-name" class="text-white"></strong></span>
+    <button type="button" onclick="openProfileModal()" class="underline font-bold text-amberlead-400" style="min-height:44px">Profile &amp; Lock</button>
+  </div>
+
   <!-- Slide-Up Navigation Menu Drawer (100% Vertical) -->
   <div id="mobile-nav-drawer" class="fixed inset-0 bg-black/60 z-50 hidden flex-col justify-end transition-opacity">
     <div class="bg-white rounded-t-3xl p-5 shadow-2xl max-h-[85vh] overflow-y-auto space-y-3.5 border-t-4 border-brand-600">
@@ -234,6 +240,9 @@
 
       <!-- System Actions Vertical -->
       <div class="pt-2 border-t border-warmgray-200 flex flex-col space-y-2">
+        <button onclick="openProfileModal(); toggleMobileNavDrawer();" class="w-full p-3 bg-brand-100 text-brand-900 border border-brand-500 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
+          <span>👤</span> Profile, PIN &amp; Lock
+        </button>
         <button onclick="toggleTrophyModal(); toggleMobileNavDrawer();" class="w-full p-3 bg-amberlead-50 text-amberlead-700 border border-amberlead-400 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
           <span>🏆</span> View Badge Showcase & Level
         </button>
@@ -246,6 +255,11 @@
         <button onclick="window.print();" class="w-full p-3 bg-brand-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2">
           <span>🖨️</span> Print Doctor Summary Sheet
         </button>
+        <p class="text-center text-base pt-1">
+          <a href="faq.html" class="underline font-semibold text-brand-700">Help &amp; FAQ</a> &middot;
+          <a href="privacy.html" class="underline font-semibold text-brand-700">Privacy</a> &middot;
+          <a href="terms.html" class="underline font-semibold text-brand-700">Terms</a>
+        </p>
       </div>
     </div>
   </div>
@@ -428,6 +442,22 @@
         <button onclick="toggleApiKeyModal()" class="w-full bg-warmgray-200 hover:bg-warmgray-300 text-warmgray-800 font-bold py-2.5 rounded-xl text-sm">Close</button>
       </div>
     </div>
+  </div>
+
+  <!-- PROFILE & LOCK MODAL -->
+  <div id="profile-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white rounded-3xl w-full max-w-md p-5 shadow-2xl space-y-4 border border-warmgray-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="text-lg font-bold text-warmgray-900">Profile &amp; Lock</h3>
+        <button type="button" onclick="closeProfileModal()" aria-label="Close" class="text-warmgray-500 hover:text-warmgray-900 text-3xl font-bold leading-none">&times;</button>
+      </div>
+      <div id="profile-modal-body" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- PROFILE PICKER / PIN SCREEN (shown before the app opens) -->
+  <div id="profile-gate" class="fixed inset-0 z-[90] bg-warmgray-50 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-label="Choose your profile">
+    <div id="profile-gate-inner" class="w-full max-w-md mx-auto px-5 py-8 flex flex-col space-y-5"></div>
   </div>
 
   <!-- TOAST NOTIFICATION BANNER -->
@@ -1235,6 +1265,11 @@
       Talk with your doctor about your readings and before changing exercise or medications.
       For chest pain, trouble breathing, or sudden weakness, call emergency services (911 in the U.S.).
     </p>
+    <p class="text-base text-center no-print pb-2">
+      <a href="faq.html" class="underline font-semibold text-brand-700">Help &amp; FAQ</a> &middot;
+      <a href="privacy.html" class="underline font-semibold text-brand-700">Privacy Policy</a> &middot;
+      <a href="terms.html" class="underline font-semibold text-brand-700">Terms of Use</a>
+    </p>
   </main>
 
   <!-- MOBILE BOTTOM BAR (Thumb-friendly navigation) -->
@@ -1278,25 +1313,31 @@
       throw new Error('Dexie failed to load');
     }
 
-    const db = new Dexie("GoldenPaceGamifiedDB");
-    // Version 1 indexed nearly every field (even multi-megabyte meal photos). Kept so existing
-    // installs upgrade cleanly to version 2, which indexes only what the app actually queries.
-    db.version(1).stores({
-      vitals: "++id, date, time, bpContext, systolic, diastolic, pulse, weight, unit, medsMorning, medsEvening, sleepRating, jointStatus, notes, duration, taiChi, bike, weights",
-      meals: "++id, date, time, type, desc, image, analysis",
-      hydration: "date, cupsCount",
-      milestones: "++id, date, type, score, details",
-      reminders: "id, title, time, enabled, sound",
-      gamification: "id, xp, streak, lastActiveDate, badges, dailyQuests, chestClaimed"
-    });
-    db.version(2).stores({
-      vitals: "++id, date, bpContext",
-      meals: "++id, date",
-      hydration: "date",
-      milestones: "++id, date",
-      reminders: "id",
-      gamification: "id"
-    });
+    // Each profile has its own database, so people sharing a device never see each other's records.
+    // The database is opened after a profile is chosen (see "Profiles" script at the end of the page).
+    let db = null;
+    function openProfileDb(name) {
+      const d = new Dexie(name);
+      // Version 1 indexed nearly every field (even multi-megabyte meal photos). Kept so older
+      // installs upgrade cleanly to version 2, which indexes only what the app queries.
+      d.version(1).stores({
+        vitals: "++id, date, time, bpContext, systolic, diastolic, pulse, weight, unit, medsMorning, medsEvening, sleepRating, jointStatus, notes, duration, taiChi, bike, weights",
+        meals: "++id, date, time, type, desc, image, analysis",
+        hydration: "date, cupsCount",
+        milestones: "++id, date, type, score, details",
+        reminders: "id, title, time, enabled, sound",
+        gamification: "id, xp, streak, lastActiveDate, badges, dailyQuests, chestClaimed"
+      });
+      d.version(2).stores({
+        vitals: "++id, date, bpContext",
+        meals: "++id, date",
+        hydration: "date",
+        milestones: "++id, date",
+        reminders: "id",
+        gamification: "id"
+      });
+      return d;
+    }
 
     const GEMINI_MODEL = 'gemini-2.5-flash';
     const LOW_SODIUM_MEAL_MG = 600;   // a meal at or under this earns "Mindful Plate"
@@ -2176,7 +2217,7 @@
         const mealTimeInput = document.getElementById('meal-time-input');
         if (mealTimeInput) mealTimeInput.value = nowHM;
 
-        try { userApiKey = localStorage.getItem('golden_pace_gemini_key') || ""; } catch (e) { userApiKey = ""; }
+        userApiKey = lsGet(pkey('gemini_key')) || "";
 
         setupAccessibility();
         await initGamification();
@@ -2206,7 +2247,7 @@
       const toast = document.getElementById('toast-banner');
       if (toast) { toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite'); }
 
-      const modalIds = ['trophy-modal', 'alarm-modal', 'vault-modal', 'api-key-modal', 'chest-modal'];
+      const modalIds = ['trophy-modal', 'alarm-modal', 'vault-modal', 'api-key-modal', 'chest-modal', 'profile-modal'];
       modalIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) { el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); }
@@ -2239,7 +2280,7 @@
 
     function checkBackupNudge() {
       try {
-        const last = Number(localStorage.getItem('golden_pace_last_backup') || 0);
+        const last = Number(lsGet(pkey('last_backup')) || 0);
         if (logs.length > 0 && Date.now() - last > 7 * 86400000) {
           setTimeout(() => showToast('Time for a backup', 'Open the Vault menu and save a backup file so your records stay safe.'), 1500);
         }
@@ -2248,8 +2289,8 @@
 
     function showFirstRunHint() {
       try {
-        if (logs.length === 0 && !localStorage.getItem('golden_pace_welcomed')) {
-          localStorage.setItem('golden_pace_welcomed', '1');
+        if (logs.length === 0 && !lsGet(pkey('welcomed'))) {
+          lsSet(pkey('welcomed'), '1');
           setTimeout(() => showToast('Welcome to Golden Pace', 'Log your first reading in the Log tab. Sample data is available from the Log tab if you want to look around.'), 800);
         }
       } catch (e) {}
@@ -2550,7 +2591,7 @@
     function saveApiKey() {
       const val = document.getElementById('custom-api-key-input').value.trim();
       userApiKey = val;
-      localStorage.setItem('golden_pace_gemini_key', val);
+      lsSet(pkey('gemini_key'), val);
       toggleApiKeyModal();
       showToast("Settings Saved", "Gemini API key updated.");
     }
@@ -3704,7 +3745,8 @@ Assess for senior nutrition:
         const backupVault = {
           app: "Golden Pace",
           exportDate: new Date().toISOString(),
-          version: "3.1",
+          version: "3.2",
+          profileName: currentProfile ? currentProfile.name : '',
           vitals: await db.vitals.toArray(),
           meals: await db.meals.toArray(),
           hydration: await db.hydration.toArray(),
@@ -3723,7 +3765,7 @@ Assess for senior nutrition:
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-        try { localStorage.setItem('golden_pace_last_backup', String(Date.now())); } catch (e) {}
+        lsSet(pkey('last_backup'), String(Date.now()));
         showToast("Backup Saved", "Your backup file was downloaded.");
       } catch (err) {
         console.error("Backup export failed:", err);
@@ -3774,7 +3816,7 @@ Assess for senior nutrition:
     }
 
     window.onload = function() {
-      initApp();
+      bootstrapProfiles();   // shows the profile screen, then starts the app for the chosen profile
       registerServiceWorker();
     };
 
@@ -3783,6 +3825,505 @@ Assess for senior nutrition:
       if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
       navigator.serviceWorker.register('sw.js').catch(err => console.debug('Service worker not registered:', err));
     }
+  </script>
+
+  <script>
+    /* =========================================================
+       PROFILES & PIN LOCK (several people on one device)
+       - Every profile has its own database, so records never mix.
+       - A PIN is a privacy screen, not encryption (stated in the Privacy Policy).
+       ========================================================= */
+    const PROFILES_KEY = 'golden_pace_profiles_v1';
+    const ACTIVE_KEY = 'golden_pace_active';
+    const LEGACY_DB = 'GoldenPaceGamifiedDB';
+    const AUTO_LOCK_MS = 5 * 60 * 1000;
+    const PIN_ITERATIONS = 150000;
+    const AVATARS = ['🌻', '🌿', '🦩', '🎋', '🌳', '☀️', '🌙', '⭐', '🦉', '🐢', '🍀', '🌸'];
+    let currentProfile = null;
+    let gateProfiles = [];
+    let gateKeyHandler = null;
+    let gateTimer = null;
+
+    function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function lsRemove(k) { try { localStorage.removeItem(k); } catch (e) {} }
+    function pkey(name) { return `golden_pace_${name}_${currentProfile ? currentProfile.id : 'none'}`; }
+
+    function loadProfiles() {
+      try { const l = JSON.parse(lsGet(PROFILES_KEY) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; }
+    }
+    function saveProfiles(list) { lsSet(PROFILES_KEY, JSON.stringify(list)); }
+    function newProfileId() {
+      const raw = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      return raw.replace(/[^a-z0-9-]/gi, '');
+    }
+
+    /* ---- PIN hashing (salted PBKDF2; the PIN itself is never stored) ---- */
+    function pinSupported() { return !!(window.crypto && crypto.subtle); }
+    function toB64(bytes) { return btoa(String.fromCharCode(...bytes)); }
+    function fromB64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
+    async function hashPin(pin, saltB64, iterations) {
+      const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+      const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: fromB64(saltB64), iterations, hash: 'SHA-256' }, key, 256);
+      return toB64(new Uint8Array(bits));
+    }
+    async function makePinRecord(pin) {
+      const salt = toB64(crypto.getRandomValues(new Uint8Array(16)));
+      return { salt, iter: PIN_ITERATIONS, hash: await hashPin(pin, salt, PIN_ITERATIONS) };
+    }
+    async function verifyPin(profile, pin) {
+      if (!profile.pin) return true;
+      return (await hashPin(pin, profile.pin.salt, profile.pin.iter)) === profile.pin.hash;
+    }
+
+    /* ---- Wrong-PIN slow-down (5 misses, then a growing wait) ---- */
+    function failState(id) { try { return JSON.parse(lsGet('golden_pace_pinfail_' + id) || '{}'); } catch (e) { return {}; } }
+    function cooldownLeft(id) { return Math.max(0, Math.ceil(((failState(id).until || 0) - Date.now()) / 1000)); }
+    function recordFail(id) {
+      const count = (failState(id).count || 0) + 1;
+      const until = count >= 5 ? Date.now() + 30000 * (count - 4) : 0;
+      lsSet('golden_pace_pinfail_' + id, JSON.stringify({ count, until }));
+      return { count, until };
+    }
+    function clearFails(id) { lsRemove('golden_pace_pinfail_' + id); }
+
+    /* ---- Opening screen ---- */
+    async function migrateLegacyProfile() {
+      const existing = loadProfiles();
+      if (existing.length) return existing;
+      let legacyExists = false;
+      try { legacyExists = await Dexie.exists(LEGACY_DB); } catch (e) {}
+      if (!legacyExists) return existing;
+      // Records saved before profiles existed become the first profile; nothing is copied or lost.
+      [['golden_pace_gemini_key', 'gemini_key'], ['golden_pace_last_backup', 'last_backup'], ['golden_pace_welcomed', 'welcomed']].forEach(([oldK, newK]) => {
+        const v = lsGet(oldK);
+        if (v !== null) lsSet(`golden_pace_${newK}_legacy`, v);
+      });
+      const p = { id: 'legacy', name: 'My Profile', avatar: '🌱', dbName: LEGACY_DB, pin: null, pinLen: 0, createdAt: Date.now(), lastUsed: 0 };
+      saveProfiles([p]);
+      return [p];
+    }
+
+    async function bootstrapProfiles() {
+      try {
+        gateProfiles = await migrateLegacyProfile();
+        let activeId = null;
+        try { activeId = sessionStorage.getItem(ACTIVE_KEY); } catch (e) {}
+        const active = gateProfiles.find(p => p.id === activeId);
+        if (active) { await startSession(active); return; }
+        showProfileGate();
+      } catch (err) {
+        console.error('Profile startup failed:', err);
+        showFatal('Golden Pace could not open its storage on this device. If you are in a private or incognito window, please open it in a normal window.');
+      }
+    }
+
+    function setGateInert(on) {
+      document.querySelectorAll('body > header, body > main, body > nav, #profile-bar').forEach(el => {
+        if (on) { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true'); }
+        else { el.removeAttribute('inert'); el.removeAttribute('aria-hidden'); }
+      });
+    }
+    function gateInner() { return document.getElementById('profile-gate-inner'); }
+    function resetGateListeners() {
+      if (gateKeyHandler) { document.removeEventListener('keydown', gateKeyHandler); gateKeyHandler = null; }
+      clearInterval(gateTimer); gateTimer = null;
+    }
+    function showProfileGate() {
+      document.getElementById('profile-gate').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';   // the page behind the lock screen must not scroll
+      setGateInert(true);
+      if (gateProfiles.length === 0) renderGateCreate(true); else renderGateList();
+    }
+    function hideGate() {
+      resetGateListeners();
+      document.getElementById('profile-gate').classList.add('hidden');
+      document.body.style.overflow = '';
+      setGateInert(false);
+    }
+    function legalLinksHTML() {
+      return `<p class="text-center text-base text-warmgray-700 pt-2">
+        <a href="faq.html" target="_blank" rel="noopener" class="underline font-semibold text-brand-700">Help &amp; FAQ</a> &middot;
+        <a href="privacy.html" target="_blank" rel="noopener" class="underline font-semibold text-brand-700">Privacy Policy</a> &middot;
+        <a href="terms.html" target="_blank" rel="noopener" class="underline font-semibold text-brand-700">Terms of Use</a></p>`;
+    }
+
+    async function startSession(profile) {
+      currentProfile = profile;
+      try { sessionStorage.setItem(ACTIVE_KEY, profile.id); } catch (e) {}
+      profile.lastUsed = Date.now();
+      saveProfiles(loadProfiles().map(x => (x.id === profile.id ? profile : x)));
+      db = openProfileDb(profile.dbName);
+      hideGate();
+      document.getElementById('profile-bar-name').textContent = `${profile.avatar} ${profile.name}`;
+      const meta = document.getElementById('print-header-meta');
+      if (meta) meta.textContent = `Prepared for: ${profile.name} • Generated for Primary Care & Geriatric Wellness Consultation`;
+      await initApp();
+      if (profile.id === 'legacy' && !profile.pin && !lsGet(pkey('pin_nudged'))) {
+        lsSet(pkey('pin_nudged'), '1');
+        setTimeout(() => showToast('Protect your records', 'Open Profile & Lock to add a PIN, or add profiles for other people.'), 2500);
+      }
+    }
+
+    function renderGateList() {
+      resetGateListeners();
+      const el = gateInner();
+      el.innerHTML = `
+        <div class="text-center space-y-1">
+          <div class="text-5xl" aria-hidden="true">🌱</div>
+          <h1 class="text-2xl font-black text-brand-900">Golden Pace</h1>
+          <p class="text-lg text-warmgray-700">Who is using Golden Pace?</p>
+        </div>
+        <div id="gate-profile-list" class="flex flex-col space-y-3"></div>
+        <button type="button" id="gate-add" class="w-full p-4 rounded-2xl border-2 border-dashed border-brand-500 text-brand-800 font-bold text-lg bg-white">＋ Add a profile</button>
+        ${legalLinksHTML()}`;
+      const list = el.querySelector('#gate-profile-list');
+      gateProfiles.forEach(p => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'w-full flex items-center gap-4 p-4 bg-white border-2 border-warmgray-200 rounded-2xl text-left shadow-sm active:scale-[0.99]';
+        b.innerHTML = `
+          <span class="w-14 h-14 rounded-2xl bg-brand-100 flex items-center justify-center text-3xl flex-shrink-0" aria-hidden="true">${escapeHTML(p.avatar)}</span>
+          <span class="flex-grow min-w-0">
+            <span class="block text-xl font-bold text-warmgray-900 truncate">${escapeHTML(p.name)}</span>
+            <span class="block text-base text-warmgray-600">${p.pin ? '🔒 PIN protected' : 'No PIN'}</span>
+          </span>
+          <span class="text-2xl text-brand-600" aria-hidden="true">›</span>`;
+        b.addEventListener('click', () => (p.pin ? renderGatePin(p) : startSession(p)));
+        list.appendChild(b);
+      });
+      el.querySelector('#gate-add').addEventListener('click', () => renderGateCreate(false));
+    }
+
+    function renderGatePin(p) {
+      resetGateListeners();
+      const len = p.pinLen || 4;
+      let entered = '';
+      let busy = false;
+      const el = gateInner();
+      el.innerHTML = `
+        <button type="button" id="gate-back" class="self-start text-brand-700 font-bold underline" style="min-height:44px">← Choose someone else</button>
+        <div class="text-center space-y-2">
+          <div class="text-5xl" aria-hidden="true">${escapeHTML(p.avatar)}</div>
+          <h1 class="text-2xl font-black text-warmgray-900">${escapeHTML(p.name)}</h1>
+          <p class="text-lg text-warmgray-700">Enter your PIN</p>
+        </div>
+        <div id="pin-dots" class="flex justify-center gap-3" aria-hidden="true"></div>
+        <p id="pin-msg" role="alert" class="text-center text-lg font-bold text-rose-700 min-h-[2rem]"></p>
+        <div id="pin-pad" class="grid grid-cols-3 gap-3 max-w-xs mx-auto w-full"></div>
+        <button type="button" id="gate-forgot" class="text-warmgray-700 underline font-semibold" style="min-height:44px">I forgot my PIN</button>`;
+      const dots = el.querySelector('#pin-dots');
+      const msg = el.querySelector('#pin-msg');
+      const drawDots = () => {
+        dots.innerHTML = '';
+        for (let i = 0; i < len; i++) {
+          const d = document.createElement('span');
+          d.className = 'w-5 h-5 rounded-full border-2 border-brand-700 ' + (i < entered.length ? 'bg-brand-700' : 'bg-white');
+          dots.appendChild(d);
+        }
+      };
+      const showCooldown = () => {
+        const left = cooldownLeft(p.id);
+        if (left > 0) { msg.textContent = `Too many tries. Please wait ${left} seconds.`; return true; }
+        return false;
+      };
+      const submit = async () => {
+        busy = true;
+        let ok = false;
+        try { ok = await verifyPin(p, entered); } catch (e) { ok = false; }
+        if (ok) { clearFails(p.id); await startSession(p); return; }
+        const f = recordFail(p.id);
+        entered = ''; drawDots(); busy = false;
+        if (f.until) {
+          showCooldown();
+          clearInterval(gateTimer);
+          gateTimer = setInterval(() => { if (!showCooldown()) { msg.textContent = ''; clearInterval(gateTimer); } }, 1000);
+        } else {
+          msg.textContent = 'That PIN is not right. Please try again.';
+        }
+      };
+      const press = key => {
+        if (busy) return;
+        if (cooldownLeft(p.id) > 0) { showCooldown(); return; }
+        msg.textContent = '';
+        if (key === 'back') entered = entered.slice(0, -1);
+        else if (entered.length < len) entered += key;
+        drawDots();
+        if (entered.length === len) submit();
+      };
+      const pad = el.querySelector('#pin-pad');
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back'].forEach(k => {
+        if (k === '') { pad.appendChild(document.createElement('div')); return; }
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'h-16 rounded-2xl bg-white border-2 border-warmgray-300 font-bold text-warmgray-900 active:bg-brand-100';
+        b.style.cssText = 'font-size:28px !important';
+        b.textContent = k === 'back' ? '⌫' : k;
+        b.setAttribute('aria-label', k === 'back' ? 'Delete last digit' : k);
+        b.addEventListener('click', () => press(k));
+        pad.appendChild(b);
+      });
+      gateKeyHandler = e => {
+        if (/^[0-9]$/.test(e.key)) press(e.key);
+        else if (e.key === 'Backspace') press('back');
+      };
+      document.addEventListener('keydown', gateKeyHandler);
+      drawDots();
+      if (showCooldown()) gateTimer = setInterval(() => { if (!showCooldown()) { msg.textContent = ''; clearInterval(gateTimer); } }, 1000);
+      el.querySelector('#gate-back').addEventListener('click', renderGateList);
+      el.querySelector('#gate-forgot').addEventListener('click', () => renderGateForgot(p));
+    }
+
+    function renderGateForgot(p) {
+      resetGateListeners();
+      const el = gateInner();
+      el.innerHTML = `
+        <button type="button" id="gate-back" class="self-start text-brand-700 font-bold underline" style="min-height:44px">← Back</button>
+        <div class="text-center space-y-2">
+          <div class="text-5xl" aria-hidden="true">🔑</div>
+          <h1 class="text-2xl font-black text-warmgray-900">Forgot your PIN?</h1>
+        </div>
+        <div class="bg-white border-2 border-warmgray-200 rounded-2xl p-4 space-y-3 text-lg text-warmgray-800">
+          <p>Your PIN is never stored, so it <strong>cannot be recovered</strong>, not even by us.</p>
+          <p>If you saved a backup file from the Vault menu, you can start over with a new profile and restore the backup into it.</p>
+          <p>Otherwise, the only way back in is to delete this profile and its records from this device.</p>
+        </div>
+        <button type="button" id="gate-wipe" class="w-full p-4 rounded-2xl bg-rose-700 text-white font-bold text-lg">Delete "${escapeHTML(p.name)}" and start over</button>
+        ${legalLinksHTML()}`;
+      el.querySelector('#gate-back').addEventListener('click', () => renderGatePin(p));
+      el.querySelector('#gate-wipe').addEventListener('click', async () => {
+        if (!confirm(`This permanently deletes every record saved for "${p.name}" on this device. It cannot be undone. Continue?`)) return;
+        await removeProfileData(p);
+        gateProfiles = loadProfiles();
+        showProfileGate();
+      });
+    }
+
+    function renderGateCreate(first) {
+      resetGateListeners();
+      const el = gateInner();
+      const canPin = pinSupported();
+      const avatarOptions = AVATARS.map((a, i) => `
+        <label class="cursor-pointer">
+          <input type="radio" name="gate-avatar" value="${a}" class="sr-only peer" ${i === 0 ? 'checked' : ''}>
+          <span class="flex w-14 h-14 items-center justify-center rounded-2xl border-2 border-warmgray-300 bg-white text-3xl peer-checked:border-brand-600 peer-checked:bg-brand-100 peer-checked:ring-4 peer-checked:ring-brand-200 peer-focus-visible:ring-4 peer-focus-visible:ring-brand-500">${a}</span>
+        </label>`).join('');
+      el.innerHTML = `
+        ${first ? '' : '<button type="button" id="gate-back" class="self-start text-brand-700 font-bold underline" style="min-height:44px">← Cancel</button>'}
+        <div class="text-center space-y-1">
+          <div class="text-5xl" aria-hidden="true">${first ? '🌱' : '👤'}</div>
+          <h1 class="text-2xl font-black text-brand-900">${first ? 'Welcome to Golden Pace' : 'Add a profile'}</h1>
+          <p class="text-lg text-warmgray-700">${first ? 'Let\'s set up your profile.' : 'Each person gets private records of their own.'}</p>
+        </div>
+        <form id="gate-create-form" class="bg-white border-2 border-warmgray-200 rounded-2xl p-4 space-y-4" novalidate>
+          <div>
+            <label for="gate-name" class="block font-bold text-warmgray-900 mb-1">Your name</label>
+            <input id="gate-name" type="text" maxlength="24" autocomplete="off" required class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl" placeholder="For example: Alex">
+          </div>
+          <fieldset>
+            <legend class="font-bold text-warmgray-900 mb-2">Pick a picture</legend>
+            <div class="flex flex-wrap gap-2">${avatarOptions}</div>
+          </fieldset>
+          <fieldset class="space-y-2">
+            <legend class="font-bold text-warmgray-900 mb-1">Keep this profile private?</legend>
+            ${canPin ? `
+            <label class="flex items-start gap-3 p-3 rounded-xl border border-warmgray-300 bg-warmgray-50">
+              <input type="radio" name="gate-pinmode" value="pin" checked class="w-6 h-6 mt-0.5">
+              <span><strong>Protect with a PIN</strong> (recommended)<br><span class="text-base text-warmgray-600">4 to 6 numbers. Stops others using this device from opening your records.</span></span>
+            </label>` : ''}
+            <label class="flex items-start gap-3 p-3 rounded-xl border border-warmgray-300 bg-warmgray-50">
+              <input type="radio" name="gate-pinmode" value="none" ${canPin ? '' : 'checked'} class="w-6 h-6 mt-0.5">
+              <span><strong>No PIN</strong><br><span class="text-base text-warmgray-600">Anyone using this device can open this profile.</span></span>
+            </label>
+            ${canPin ? '' : '<p class="text-base text-warmgray-600">PINs need a secure connection (https), so they are turned off here.</p>'}
+          </fieldset>
+          <div id="gate-pin-fields" class="space-y-3 ${canPin ? '' : 'hidden'}">
+            <div>
+              <label for="gate-pin1" class="block font-bold text-warmgray-900 mb-1">Choose a PIN (4 to 6 numbers)</label>
+              <input id="gate-pin1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest">
+            </div>
+            <div>
+              <label for="gate-pin2" class="block font-bold text-warmgray-900 mb-1">Type the PIN again</label>
+              <input id="gate-pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest">
+            </div>
+            <p class="text-base text-warmgray-600">Write your PIN down somewhere safe. It cannot be recovered if you forget it.</p>
+          </div>
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-brand-50 border border-brand-200">
+            <input id="gate-consent" type="checkbox" class="w-6 h-6 mt-0.5 flex-shrink-0">
+            <span class="text-base">I have read and agree to the
+              <a href="terms.html" target="_blank" rel="noopener" class="underline font-semibold text-brand-700">Terms of Use</a> and
+              <a href="privacy.html" target="_blank" rel="noopener" class="underline font-semibold text-brand-700">Privacy Policy</a>.</span>
+          </label>
+          <p id="gate-error" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>
+          <button type="submit" id="gate-create-btn" class="w-full p-4 rounded-2xl bg-brand-600 text-white font-bold text-lg">Create profile</button>
+        </form>
+        ${legalLinksHTML()}`;
+
+      const form = el.querySelector('#gate-create-form');
+      const err = el.querySelector('#gate-error');
+      const pinFields = el.querySelector('#gate-pin-fields');
+      form.querySelectorAll('input[name="gate-pinmode"]').forEach(r => r.addEventListener('change', () => {
+        pinFields.classList.toggle('hidden', form.querySelector('input[name="gate-pinmode"]:checked').value !== 'pin');
+      }));
+      if (!first) el.querySelector('#gate-back').addEventListener('click', renderGateList);
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        err.textContent = '';
+        const name = el.querySelector('#gate-name').value.trim();
+        const usePin = canPin && form.querySelector('input[name="gate-pinmode"]:checked').value === 'pin';
+        const pin1 = el.querySelector('#gate-pin1').value;
+        const pin2 = el.querySelector('#gate-pin2').value;
+        if (!name) { err.textContent = 'Please type your name.'; return; }
+        if (loadProfiles().some(p => p.name.toLowerCase() === name.toLowerCase())) { err.textContent = 'That name is already used. Please pick another.'; return; }
+        if (usePin && !/^\d{4,6}$/.test(pin1)) { err.textContent = 'Your PIN must be 4 to 6 numbers.'; return; }
+        if (usePin && pin1 !== pin2) { err.textContent = 'The two PINs do not match.'; return; }
+        if (!el.querySelector('#gate-consent').checked) { err.textContent = 'Please tick the box to agree to the Terms and Privacy Policy.'; return; }
+        el.querySelector('#gate-create-btn').disabled = true;
+        try {
+          const id = newProfileId();
+          const p = {
+            id, name,
+            avatar: form.querySelector('input[name="gate-avatar"]:checked').value,
+            dbName: `GoldenPace_${id}`,
+            pin: usePin ? await makePinRecord(pin1) : null,
+            pinLen: usePin ? pin1.length : 0,
+            createdAt: Date.now(), lastUsed: Date.now()
+          };
+          gateProfiles = [...loadProfiles(), p];
+          saveProfiles(gateProfiles);
+          await startSession(p);
+        } catch (ex) {
+          console.error(ex);
+          err.textContent = 'Sorry, the profile could not be created on this device.';
+          el.querySelector('#gate-create-btn').disabled = false;
+        }
+      });
+      el.querySelector('#gate-name').focus();
+    }
+
+    /* ---- Profile & Lock menu (inside the app) ---- */
+    function lockNow() {
+      try { sessionStorage.removeItem(ACTIVE_KEY); } catch (e) {}
+      location.reload();   // a clean reload guarantees no data from this profile stays in memory
+    }
+    function closeProfileModal() { document.getElementById('profile-modal').classList.add('hidden'); }
+    function openProfileModal() {
+      document.getElementById('profile-modal').classList.remove('hidden');
+      renderProfileMenu();
+    }
+    function profileBody() { return document.getElementById('profile-modal-body'); }
+
+    function renderProfileMenu() {
+      const p = currentProfile;
+      const body = profileBody();
+      body.innerHTML = `
+        <div class="flex items-center gap-3 p-3 bg-brand-50 border border-brand-200 rounded-2xl">
+          <span class="w-14 h-14 rounded-2xl bg-brand-100 flex items-center justify-center text-3xl" aria-hidden="true">${escapeHTML(p.avatar)}</span>
+          <div><div class="text-xl font-bold text-warmgray-900">${escapeHTML(p.name)}</div>
+          <div class="text-base text-warmgray-600">${p.pin ? '🔒 PIN protected' : 'No PIN set'}</div></div>
+        </div>
+        <button type="button" id="pm-lock" class="w-full p-3.5 rounded-xl bg-brand-600 text-white font-bold flex items-center justify-center gap-2"><span>🔒</span> Lock / Switch profile</button>
+        ${pinSupported() ? `<button type="button" id="pm-pin" class="w-full p-3.5 rounded-xl bg-warmgray-100 text-warmgray-900 font-bold border border-warmgray-300">🔑 ${p.pin ? 'Change or remove my PIN' : 'Add a PIN'}</button>` : ''}
+        <button type="button" id="pm-delete" class="w-full p-3.5 rounded-xl bg-rose-50 text-rose-800 font-bold border border-rose-300">🗑 Delete this profile</button>
+        <p class="text-base text-warmgray-600">${p.pin ? 'Golden Pace also locks itself after 5 minutes away from the screen.' : 'Without a PIN, Golden Pace never locks itself.'} A PIN keeps other people from opening your records, but it does not scramble them. Please also use your phone\'s own screen lock.</p>
+        <p class="text-center text-base"><a href="faq.html" class="underline font-semibold text-brand-700">Help &amp; FAQ</a> &middot; <a href="privacy.html" class="underline font-semibold text-brand-700">Privacy</a> &middot; <a href="terms.html" class="underline font-semibold text-brand-700">Terms</a></p>
+        <button type="button" class="w-full p-3 rounded-xl bg-warmgray-200 text-warmgray-900 font-bold" onclick="closeProfileModal()">Close</button>`;
+      body.querySelector('#pm-lock').addEventListener('click', lockNow);
+      const pinBtn = body.querySelector('#pm-pin');
+      if (pinBtn) pinBtn.addEventListener('click', renderPinPanel);
+      body.querySelector('#pm-delete').addEventListener('click', renderDeletePanel);
+    }
+
+    function renderPinPanel() {
+      const p = currentProfile;
+      const body = profileBody();
+      body.innerHTML = `
+        <h4 class="text-lg font-bold text-warmgray-900">${p.pin ? 'Change or remove my PIN' : 'Add a PIN'}</h4>
+        <form id="pm-pin-form" class="space-y-3" novalidate>
+          ${p.pin ? '<div><label for="pm-cur" class="block font-bold mb-1">Current PIN</label><input id="pm-cur" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest"></div>' : ''}
+          <div><label for="pm-new" class="block font-bold mb-1">New PIN (4 to 6 numbers)</label><input id="pm-new" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest"></div>
+          <div><label for="pm-new2" class="block font-bold mb-1">Type the new PIN again</label><input id="pm-new2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest"></div>
+          <p id="pm-err" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>
+          <button type="submit" class="w-full p-3.5 rounded-xl bg-brand-600 text-white font-bold">Save PIN</button>
+          ${p.pin ? '<button type="button" id="pm-remove" class="w-full p-3 rounded-xl bg-warmgray-100 text-warmgray-900 font-bold border border-warmgray-300">Remove my PIN (needs the current PIN above)</button>' : ''}
+          <button type="button" id="pm-cancel" class="w-full p-3 rounded-xl bg-warmgray-200 text-warmgray-900 font-bold">Back</button>
+        </form>`;
+      const err = body.querySelector('#pm-err');
+      const checkCurrent = async () => {
+        if (!p.pin) return true;
+        const cur = body.querySelector('#pm-cur').value;
+        if (!/^\d{4,6}$/.test(cur) || !(await verifyPin(p, cur))) { err.textContent = 'The current PIN is not right.'; return false; }
+        return true;
+      };
+      body.querySelector('#pm-pin-form').addEventListener('submit', async e => {
+        e.preventDefault(); err.textContent = '';
+        if (!(await checkCurrent())) return;
+        const n1 = body.querySelector('#pm-new').value, n2 = body.querySelector('#pm-new2').value;
+        if (!/^\d{4,6}$/.test(n1)) { err.textContent = 'Your PIN must be 4 to 6 numbers.'; return; }
+        if (n1 !== n2) { err.textContent = 'The two PINs do not match.'; return; }
+        const rec = await makePinRecord(n1);
+        p.pin = rec; p.pinLen = n1.length;
+        saveProfiles(loadProfiles().map(x => (x.id === p.id ? p : x)));
+        clearFails(p.id);
+        showToast('PIN saved', 'Please keep it somewhere safe. It cannot be recovered.');
+        renderProfileMenu();
+      });
+      const rm = body.querySelector('#pm-remove');
+      if (rm) rm.addEventListener('click', async () => {
+        err.textContent = '';
+        if (!(await checkCurrent())) return;
+        p.pin = null; p.pinLen = 0;
+        saveProfiles(loadProfiles().map(x => (x.id === p.id ? p : x)));
+        showToast('PIN removed', 'This profile no longer asks for a PIN.');
+        renderProfileMenu();
+      });
+      body.querySelector('#pm-cancel').addEventListener('click', renderProfileMenu);
+    }
+
+    function renderDeletePanel() {
+      const p = currentProfile;
+      const body = profileBody();
+      body.innerHTML = `
+        <h4 class="text-lg font-bold text-rose-800">Delete "${escapeHTML(p.name)}"?</h4>
+        <p class="text-lg text-warmgray-800">This permanently deletes every reading, meal, test result, badge and setting saved for this profile on this device. <strong>It cannot be undone.</strong></p>
+        <p class="text-base text-warmgray-600">Tip: save a backup first from the Vault menu if you might want these records again.</p>
+        ${p.pin ? '<div><label for="pm-del-pin" class="block font-bold mb-1">Type your PIN to confirm</label><input id="pm-del-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest"></div>' : ''}
+        <p id="pm-err" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>
+        <button type="button" id="pm-del-go" class="w-full p-3.5 rounded-xl bg-rose-700 text-white font-bold">Yes, delete everything</button>
+        <button type="button" id="pm-cancel" class="w-full p-3 rounded-xl bg-warmgray-200 text-warmgray-900 font-bold">No, keep it</button>`;
+      const err = body.querySelector('#pm-err');
+      body.querySelector('#pm-cancel').addEventListener('click', renderProfileMenu);
+      body.querySelector('#pm-del-go').addEventListener('click', async () => {
+        if (p.pin) {
+          const v = body.querySelector('#pm-del-pin').value;
+          if (!/^\d{4,6}$/.test(v) || !(await verifyPin(p, v))) { err.textContent = 'The PIN is not right.'; return; }
+        }
+        if (!confirm(`Delete all records for "${p.name}"? This cannot be undone.`)) return;
+        await removeProfileData(p);
+        lockNow();
+      });
+    }
+
+    async function removeProfileData(p) {
+      try { if (db && currentProfile && currentProfile.id === p.id) db.close(); } catch (e) {}
+      try {
+        await Promise.race([Dexie.delete(p.dbName), new Promise(r => setTimeout(r, 4000))]);
+      } catch (e) { console.error('Could not delete database', e); }
+      saveProfiles(loadProfiles().filter(x => x.id !== p.id));
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('golden_pace_') && k.endsWith('_' + p.id)) lsRemove(k);
+      }
+      try { sessionStorage.removeItem(ACTIVE_KEY); } catch (e) {}
+    }
+
+    /* ---- Auto-lock after time away (only for PIN-protected profiles) ---- */
+    let hiddenAt = 0;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+      if (hiddenAt && currentProfile && currentProfile.pin && Date.now() - hiddenAt > AUTO_LOCK_MS) lockNow();
+      hiddenAt = 0;
+    });
   </script>
 </body>
 </html>
