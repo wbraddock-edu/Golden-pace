@@ -1,6 +1,6 @@
 // Golden Pace service worker: offline-first app shell.
 // VERSION is stamped automatically by tools/build.js.
-const VERSION = 'add358cf2acd';
+const VERSION = '5835fea623d8';
 const CACHE = `golden-pace-${VERSION}`;
 const SHELL = [
   './',
@@ -11,6 +11,10 @@ const SHELL = [
   'welcome.html',
   'styles.css',
   'manifest.webmanifest',
+  'favicon.svg',
+  'favicon.ico',
+  'favicon-32.png',
+  'favicon-16.png',
   'vendor/dexie.min.js',
   'vendor/chart.umd.js',
   'vendor/confetti.browser.js',

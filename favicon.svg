@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Golden Pace</title>
+  <rect width="64" height="64" rx="14" fill="#163827"/>
+  <circle cx="32" cy="30" r="21" fill="#fbbf24" stroke="#f59e0b" stroke-width="2.5"/>
+  <path d="M30 51V31" stroke="#163827" stroke-width="5" stroke-linecap="round"/>
+  <path d="M30 33C22 33 18 27 18 21C25 21 30 25 30 33Z" fill="#2f7d55"/>
+  <path d="M31 30C31 23 35 18 44 18C44 25 39 30 31 30Z" fill="#5fa583"/>
+  <rect x="14" y="54" width="36" height="3.5" rx="1.75" fill="#c9e2d3"/>
+</svg>
