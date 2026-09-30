@@ -184,12 +184,12 @@
 
   <!-- Who is using the app right now -->
   <div id="profile-bar" class="bg-brand-900 text-brand-100 text-base px-4 py-1 flex items-center justify-between no-print">
-    <span>Profile: <strong id="profile-bar-name" class="text-white"></strong></span>
-    <button type="button" onclick="openProfileModal()" class="underline font-bold text-amberlead-400" style="min-height:44px">Profile &amp; Lock</button>
+    <span>Signed in as <strong id="profile-bar-name" class="text-white"></strong><span id="sync-status" class="block text-sm text-brand-200" aria-live="polite"></span></span>
+    <button type="button" onclick="openProfileModal()" class="underline font-bold text-amberlead-400" style="min-height:44px">My Account</button>
   </div>
   <div id="backup-banner" class="hidden no-print bg-amberlead-100 border-b-2 border-amberlead-400 text-warmgray-900 px-4 py-3" role="region" aria-label="Backup reminder">
     <p class="font-bold text-lg">💾 Time to save a backup</p>
-    <p id="backup-banner-msg" class="text-base">Your records live only on this device. A backup file keeps them safe if you clear your browser or switch phones.</p>
+    <p id="backup-banner-msg" class="text-base">Your records are saved in your account. An extra backup file on your own device is a good second copy.</p>
     <div class="flex flex-wrap gap-2 mt-2">
       <button type="button" onclick="backupBannerSave()" class="bg-brand-600 text-white font-bold px-4 rounded-xl" style="min-height:48px">Save backup now</button>
       <button type="button" onclick="backupBannerLater()" class="bg-white border-2 border-warmgray-400 text-warmgray-900 font-bold px-4 rounded-xl" style="min-height:48px">Remind me later</button>
@@ -269,7 +269,7 @@
       <!-- System Actions Vertical -->
       <div class="pt-2 border-t border-warmgray-200 flex flex-col space-y-2">
         <button onclick="openProfileModal(); toggleMobileNavDrawer();" class="w-full p-3 bg-brand-100 text-brand-900 border border-brand-500 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
-          <span>👤</span> Profile, PIN &amp; Lock
+          <span>👤</span> My Account &amp; Sign Out
         </button>
         <button onclick="toggleTrophyModal(); toggleMobileNavDrawer();" class="w-full p-3 bg-amberlead-50 text-amberlead-700 border border-amberlead-400 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
           <span>🏆</span> View Badge Showcase & Level
@@ -426,7 +426,7 @@
         <button onclick="toggleVaultModal()" class="text-warmgray-500 hover:text-warmgray-900 text-3xl font-bold leading-none">&times;</button>
       </div>
       <p class="text-sm text-warmgray-700">
-        Your vitals, meal pictures, hydration, badges, and points are stored safely in your browser's persistent database.
+        Your vitals, meal pictures, hydration, badges, and points are saved in your account and kept on this device for offline use.
       </p>
       <div class="bg-warmgray-50 p-4 rounded-2xl border border-warmgray-300 space-y-2">
         <h4 class="font-bold text-sm text-warmgray-900">1. Download Vault Backup (.json)</h4>
@@ -476,7 +476,7 @@
   <div id="profile-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 hidden">
     <div class="bg-white rounded-3xl w-full max-w-md p-5 shadow-2xl space-y-4 border border-warmgray-200 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-3">
-        <h3 class="text-lg font-bold text-warmgray-900">Profile &amp; Lock</h3>
+        <h3 class="text-lg font-bold text-warmgray-900">My Account</h3>
         <button type="button" onclick="closeProfileModal()" aria-label="Close" class="text-warmgray-500 hover:text-warmgray-900 text-3xl font-bold leading-none">&times;</button>
       </div>
       <div id="profile-modal-body" class="space-y-3"></div>
@@ -484,7 +484,7 @@
   </div>
 
   <!-- PROFILE PICKER / PIN SCREEN (shown before the app opens) -->
-  <div id="profile-gate" class="fixed inset-0 z-[90] bg-warmgray-50 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-label="Choose your profile">
+  <div id="profile-gate" class="fixed inset-0 z-[90] bg-warmgray-50 overflow-y-auto hidden" role="dialog" aria-modal="true" aria-label="Sign in">
     <div id="profile-gate-inner" class="w-full max-w-md mx-auto px-5 py-8 flex flex-col space-y-5"></div>
   </div>
 
@@ -2315,7 +2315,7 @@
         if (!first) { lsSet(pkey('first_seen'), String(now)); }
         // Start reminding once there are records and the last save (or first use) is over 7 days old.
         const since = last || first || now;
-        const due = logs.length + meals.length > 0 && now - since > 7 * 86400000 && now > snooze;
+        const due = logs.length + meals.length > 0 && now - since > 30 * 86400000 && now > snooze;
         const el = document.getElementById('backup-banner');
         if (!el) return;
         el.classList.toggle('hidden', !due);
@@ -2324,7 +2324,7 @@
           document.getElementById('backup-banner-msg').textContent = (last
             ? `Your last backup was ${days} days ago. `
             : 'You have not saved a backup yet. ')
-            + 'Your records live only on this device. A backup file keeps them safe if you clear your browser or switch phones.';
+            + 'Your records are saved in your account. An extra backup file on your own device is a good second copy.';
         }
       } catch (e) {}
     }
@@ -2574,7 +2574,7 @@
     }
 
     async function loadSampleBaseline() {
-      if (!confirm('This will ERASE the readings, meals and tests saved on this device and replace them with sample data. Continue?')) return;
+      if (!confirm('This will ERASE the readings, meals and tests saved in your account and replace them with sample data. Continue?')) return;
       await db.vitals.clear();
       await db.meals.clear();
       await db.hydration.clear();
@@ -3449,7 +3449,7 @@ Assess for senior nutrition:
         const notification = document.getElementById('save-notification');
         notification.classList.remove('hidden');
         setTimeout(() => notification.classList.add('hidden'), 5000);
-        showToast("Vitals Logged", "Saved on this device.");
+        showToast("Vitals Logged", "Saved.");
 
         // Rewards (each pays once per day) and quest ticks driven by what was really logged
         awardOnce('log', 30, submitBtn);
@@ -3831,7 +3831,7 @@ Assess for senior nutrition:
         showToast("Choose a file", "Please select a .json backup file first.");
         return;
       }
-      if (!(presetFile instanceof File) && !confirm('Restoring REPLACES everything saved on this device with the contents of this backup file. Continue?')) return;
+      if (!(presetFile instanceof File) && !confirm('Restoring REPLACES everything saved in your account with the contents of this backup file. Continue?')) return;
 
       try {
         const data = JSON.parse(await file.text());
@@ -3880,114 +3880,52 @@ Assess for senior nutrition:
 
   <script>
     /* =========================================================
-       PROFILES & PIN LOCK (several people on one device)
-       - Every profile has its own database, so records never mix.
-       - A PIN is a privacy screen, not encryption (stated in the Privacy Policy).
+       ACCOUNTS, SIGN-IN AND SYNC
+       - Username + password or PIN, stored on the Golden Pace server (passwords are hashed there).
+       - Records are kept in this device's database (so the app works offline) and are
+         copied to the person's account whenever there is a connection.
+       - The Gemini API key is never sent to the server.
        ========================================================= */
-    const PROFILES_KEY = 'golden_pace_profiles_v1';
-    const ACTIVE_KEY = 'golden_pace_active';
     const LEGACY_DB = 'GoldenPaceGamifiedDB';
-    const AUTO_LOCK_MS = 5 * 60 * 1000;
-    const PIN_ITERATIONS = 150000;
-    const AVATARS = ['🌻', '🌿', '🦩', '🎋', '🌳', '☀️', '🌙', '⭐', '🦉', '🐢', '🍀', '🌸'];
-    let currentProfile = null;
-    let gateProfiles = [];
-    let gateKeyHandler = null;
-    let gateTimer = null;
+    const PROFILES_KEY = 'golden_pace_profiles_v1';   // older "profiles on this device" (kept only so they can be imported)
+    const LAST_USER_KEY = 'golden_pace_last_user';
+    const TABLES = ['vitals', 'meals', 'hydration', 'milestones', 'reminders', 'gamification'];
+    let currentProfile = null;      // { id: 'u12', name: 'bill', userId: 12, credType: 'pin' }
+    let applyingRemote = false;
 
     function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
     function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
     function lsRemove(k) { try { localStorage.removeItem(k); } catch (e) {} }
     function pkey(name) { return `golden_pace_${name}_${currentProfile ? currentProfile.id : 'none'}`; }
 
-    function loadProfiles() {
-      try { const l = JSON.parse(lsGet(PROFILES_KEY) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; }
-    }
-    function saveProfiles(list) { lsSet(PROFILES_KEY, JSON.stringify(list)); }
-    function newProfileId() {
-      const raw = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-      return raw.replace(/[^a-z0-9-]/gi, '');
-    }
-
-    /* ---- PIN hashing (salted PBKDF2; the PIN itself is never stored) ---- */
-    function pinSupported() { return !!(window.crypto && crypto.subtle); }
-    function toB64(bytes) { return btoa(String.fromCharCode(...bytes)); }
-    function fromB64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
-    async function hashPin(pin, saltB64, iterations) {
-      const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
-      const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: fromB64(saltB64), iterations, hash: 'SHA-256' }, key, 256);
-      return toB64(new Uint8Array(bits));
-    }
-    async function makePinRecord(pin) {
-      const salt = toB64(crypto.getRandomValues(new Uint8Array(16)));
-      return { salt, iter: PIN_ITERATIONS, hash: await hashPin(pin, salt, PIN_ITERATIONS) };
-    }
-    async function verifyPin(profile, pin) {
-      if (!profile.pin) return true;
-      return (await hashPin(pin, profile.pin.salt, profile.pin.iter)) === profile.pin.hash;
-    }
-
-    /* ---- Wrong-PIN slow-down (5 misses, then a growing wait) ---- */
-    function failState(id) { try { return JSON.parse(lsGet('golden_pace_pinfail_' + id) || '{}'); } catch (e) { return {}; } }
-    function cooldownLeft(id) { return Math.max(0, Math.ceil(((failState(id).until || 0) - Date.now()) / 1000)); }
-    function recordFail(id) {
-      const count = (failState(id).count || 0) + 1;
-      const until = count >= 5 ? Date.now() + 30000 * (count - 4) : 0;
-      lsSet('golden_pace_pinfail_' + id, JSON.stringify({ count, until }));
-      return { count, until };
-    }
-    function clearFails(id) { lsRemove('golden_pace_pinfail_' + id); }
-
-    /* ---- Opening screen ---- */
-    async function migrateLegacyProfile() {
-      const existing = loadProfiles();
-      if (existing.length) return existing;
-      let legacyExists = false;
-      try { legacyExists = await Dexie.exists(LEGACY_DB); } catch (e) {}
-      if (!legacyExists) return existing;
-      // Records saved before profiles existed become the first profile; nothing is copied or lost.
-      [['golden_pace_gemini_key', 'gemini_key'], ['golden_pace_last_backup', 'last_backup'], ['golden_pace_welcomed', 'welcomed']].forEach(([oldK, newK]) => {
-        const v = lsGet(oldK);
-        if (v !== null) lsSet(`golden_pace_${newK}_legacy`, v);
+    async function api(method, path, body) {
+      const r = await fetch(path, {
+        method, credentials: 'same-origin',
+        headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
+        body: body !== undefined ? JSON.stringify(body) : undefined
       });
-      const p = { id: 'legacy', name: 'My Profile', avatar: '🌱', dbName: LEGACY_DB, pin: null, pinLen: 0, createdAt: Date.now(), lastUsed: 0 };
-      saveProfiles([p]);
-      return [p];
+      let j = {};
+      try { j = await r.json(); } catch (e) {}
+      j.status = r.status;
+      return j;
     }
 
-    async function bootstrapProfiles() {
-      try {
-        gateProfiles = await migrateLegacyProfile();
-        let activeId = null;
-        try { activeId = sessionStorage.getItem(ACTIVE_KEY); } catch (e) {}
-        const active = gateProfiles.find(p => p.id === activeId);
-        if (active) { await startSession(active); return; }
-        showProfileGate();
-      } catch (err) {
-        console.error('Profile startup failed:', err);
-        showFatal('Golden Pace could not open its storage on this device. If you are in a private or incognito window, please open it in a normal window.');
-      }
-    }
-
+    /* ---------------------------------------------------------
+       Sign-in screens
+       --------------------------------------------------------- */
+    function gateInner() { return document.getElementById('profile-gate-inner'); }
     function setGateInert(on) {
-      document.querySelectorAll('body > header, body > main, body > nav, #profile-bar').forEach(el => {
+      document.querySelectorAll('body > header, body > main, body > nav, #profile-bar, #backup-banner').forEach(el => {
         if (on) { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true'); }
         else { el.removeAttribute('inert'); el.removeAttribute('aria-hidden'); }
       });
     }
-    function gateInner() { return document.getElementById('profile-gate-inner'); }
-    function resetGateListeners() {
-      if (gateKeyHandler) { document.removeEventListener('keydown', gateKeyHandler); gateKeyHandler = null; }
-      clearInterval(gateTimer); gateTimer = null;
-    }
-    function showProfileGate() {
+    function showGate() {
       document.getElementById('profile-gate').classList.remove('hidden');
-      document.body.style.overflow = 'hidden';   // the page behind the lock screen must not scroll
+      document.body.style.overflow = 'hidden';
       setGateInert(true);
-      if (gateProfiles.length === 0) renderGateCreate(true); else renderGateList();
     }
     function hideGate() {
-      resetGateListeners();
       document.getElementById('profile-gate').classList.add('hidden');
       document.body.style.overflow = '';
       setGateInert(false);
@@ -3998,396 +3936,643 @@ Assess for senior nutrition:
         <a href="privacy.html" target="_blank" rel="noopener" class="underline font-semibold text-brand-700">Privacy Policy</a> &middot;
         <a href="terms.html" target="_blank" rel="noopener" class="underline font-semibold text-brand-700">Terms of Use</a></p>`;
     }
-
-    async function startSession(profile) {
-      currentProfile = profile;
-      try { sessionStorage.setItem(ACTIVE_KEY, profile.id); } catch (e) {}
-      profile.lastUsed = Date.now();
-      saveProfiles(loadProfiles().map(x => (x.id === profile.id ? profile : x)));
-      db = openProfileDb(profile.dbName);
-      hideGate();
-      document.getElementById('profile-bar-name').textContent = `${profile.avatar} ${profile.name}`;
-      const meta = document.getElementById('print-header-meta');
-      if (meta) meta.textContent = `Prepared for: ${profile.name} • Generated for Primary Care & Geriatric Wellness Consultation`;
-      await initApp();
-      if (profile.id === 'legacy' && !profile.pin && !lsGet(pkey('pin_nudged'))) {
-        lsSet(pkey('pin_nudged'), '1');
-        setTimeout(() => showToast('Protect your records', 'Open Profile & Lock to add a PIN, or add profiles for other people.'), 2500);
-      }
+    const INPUT = 'w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-lg';
+    const BTN = 'w-full p-4 rounded-2xl bg-brand-600 text-white font-bold text-lg';
+    const BTN2 = 'w-full p-4 rounded-2xl border-2 border-brand-500 text-brand-800 font-bold text-lg bg-white';
+    const LINKBTN = 'text-brand-700 font-bold underline';
+    function header(icon, title, sub) {
+      return `<div class="text-center space-y-1"><div class="text-5xl" aria-hidden="true">${icon}</div>
+        <h1 class="text-2xl font-black text-brand-900">${title}</h1>${sub ? `<p class="text-lg text-warmgray-700">${sub}</p>` : ''}</div>`;
     }
+    function showPasswordToggle(root) {
+      const t = root.querySelector('.show-toggle');
+      if (!t) return;
+      t.addEventListener('change', () => root.querySelectorAll('input[data-secret]').forEach(i => { i.type = t.checked ? 'text' : 'password'; }));
+    }
+    const showToggleHTML = '<label class="flex items-center gap-3 text-base text-warmgray-800"><input type="checkbox" class="show-toggle w-6 h-6"> Show what I type</label>';
 
-    function renderGateList() {
-      resetGateListeners();
+    function renderLogin(notice) {
       const el = gateInner();
+      showGate();
       el.innerHTML = `
-        <div class="text-center space-y-1">
-          <div class="text-5xl" aria-hidden="true">🌱</div>
-          <h1 class="text-2xl font-black text-brand-900">Golden Pace</h1>
-          <p class="text-lg text-warmgray-700">Who is using Golden Pace?</p>
+        ${header('🌱', 'Golden Pace', 'Sign in to see your records.')}
+        ${notice ? `<p role="alert" class="rounded-2xl bg-amberlead-100 border-2 border-amberlead-400 p-3 text-lg font-bold">${escapeHTML(notice)}</p>` : ''}
+        <form id="login-form" class="bg-white border-2 border-warmgray-200 rounded-2xl p-4 space-y-4" novalidate>
+          <div><label for="li-user" class="block font-bold text-warmgray-900 mb-1">Username</label>
+            <input id="li-user" class="${INPUT}" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="40"></div>
+          <div><label for="li-cred" class="block font-bold text-warmgray-900 mb-1">Password or PIN</label>
+            <input id="li-cred" data-secret class="${INPUT}" type="password" autocomplete="current-password" maxlength="140"></div>
+          ${showToggleHTML}
+          <p id="li-err" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>
+          <button type="submit" id="li-btn" class="${BTN}">Sign in</button>
+        </form>
+        <button type="button" id="li-forgot" class="${LINKBTN}" style="min-height:44px">I forgot my password or PIN</button>
+        <div class="border-t-2 border-warmgray-200 pt-4 space-y-2">
+          <p class="text-lg text-center text-warmgray-800">New to Golden Pace?</p>
+          <button type="button" id="li-create" class="${BTN2}">Create a free account</button>
         </div>
-        <div id="gate-profile-list" class="flex flex-col space-y-3"></div>
-        <button type="button" id="gate-add" class="w-full p-4 rounded-2xl border-2 border-dashed border-brand-500 text-brand-800 font-bold text-lg bg-white">＋ Add a profile</button>
         ${legalLinksHTML()}`;
-      const list = el.querySelector('#gate-profile-list');
-      gateProfiles.forEach(p => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'w-full flex items-center gap-4 p-4 bg-white border-2 border-warmgray-200 rounded-2xl text-left shadow-sm active:scale-[0.99]';
-        b.innerHTML = `
-          <span class="w-14 h-14 rounded-2xl bg-brand-100 flex items-center justify-center text-3xl flex-shrink-0" aria-hidden="true">${escapeHTML(p.avatar)}</span>
-          <span class="flex-grow min-w-0">
-            <span class="block text-xl font-bold text-warmgray-900 truncate">${escapeHTML(p.name)}</span>
-            <span class="block text-base text-warmgray-600">${p.pin ? '🔒 PIN protected' : 'No PIN'}</span>
-          </span>
-          <span class="text-2xl text-brand-600" aria-hidden="true">›</span>`;
-        b.addEventListener('click', () => (p.pin ? renderGatePin(p) : startSession(p)));
-        list.appendChild(b);
+      showPasswordToggle(el);
+      const err = el.querySelector('#li-err');
+      el.querySelector('#li-create').addEventListener('click', () => renderCreate());
+      el.querySelector('#li-forgot').addEventListener('click', () => renderReset(el.querySelector('#li-user').value.trim()));
+      el.querySelector('#login-form').addEventListener('submit', async e => {
+        e.preventDefault(); err.textContent = '';
+        const username = el.querySelector('#li-user').value.trim(), credential = el.querySelector('#li-cred').value;
+        if (!username || !credential) { err.textContent = 'Please type your username and your password or PIN.'; return; }
+        const btn = el.querySelector('#li-btn'); btn.disabled = true; btn.textContent = 'Signing in...';
+        try {
+          const r = await api('POST', '/api/login', { username, credential });
+          if (r.ok) return afterAuth(r.user);
+          err.textContent = r.message || 'Sorry, that did not work. Please try again.';
+        } catch (ex) { err.textContent = 'Cannot reach Golden Pace. Please check your internet connection.'; }
+        btn.disabled = false; btn.textContent = 'Sign in';
       });
-      el.querySelector('#gate-add').addEventListener('click', () => renderGateCreate(false));
+      el.querySelector('#li-user').focus();
     }
 
-    function renderGatePin(p) {
-      resetGateListeners();
-      const len = p.pinLen || 4;
-      let entered = '';
-      let busy = false;
-      const el = gateInner();
-      el.innerHTML = `
-        <button type="button" id="gate-back" class="self-start text-brand-700 font-bold underline" style="min-height:44px">← Choose someone else</button>
-        <div class="text-center space-y-2">
-          <div class="text-5xl" aria-hidden="true">${escapeHTML(p.avatar)}</div>
-          <h1 class="text-2xl font-black text-warmgray-900">${escapeHTML(p.name)}</h1>
-          <p class="text-lg text-warmgray-700">Enter your PIN</p>
-        </div>
-        <div id="pin-dots" class="flex justify-center gap-3" aria-hidden="true"></div>
-        <p id="pin-msg" role="alert" class="text-center text-lg font-bold text-rose-700 min-h-[2rem]"></p>
-        <div id="pin-pad" class="grid grid-cols-3 gap-3 max-w-xs mx-auto w-full"></div>
-        <button type="button" id="gate-forgot" class="text-warmgray-700 underline font-semibold" style="min-height:44px">I forgot my PIN</button>`;
-      const dots = el.querySelector('#pin-dots');
-      const msg = el.querySelector('#pin-msg');
-      const drawDots = () => {
-        dots.innerHTML = '';
-        for (let i = 0; i < len; i++) {
-          const d = document.createElement('span');
-          d.className = 'w-5 h-5 rounded-full border-2 border-brand-700 ' + (i < entered.length ? 'bg-brand-700' : 'bg-white');
-          dots.appendChild(d);
-        }
+    function credFields(prefix) {
+      return `
+        <fieldset class="space-y-2">
+          <legend class="font-bold text-warmgray-900 mb-1">How do you want to sign in?</legend>
+          <label class="flex items-start gap-3 p-3 rounded-xl border border-warmgray-300 bg-warmgray-50">
+            <input type="radio" name="${prefix}-type" value="pin" checked class="w-6 h-6 mt-0.5">
+            <span class="text-lg"><b>A PIN</b> (4 to 6 numbers). Quick to type.</span></label>
+          <label class="flex items-start gap-3 p-3 rounded-xl border border-warmgray-300 bg-warmgray-50">
+            <input type="radio" name="${prefix}-type" value="password" class="w-6 h-6 mt-0.5">
+            <span class="text-lg"><b>A password</b> (8 or more characters). Stronger.</span></label>
+        </fieldset>
+        <div><label for="${prefix}-c1" id="${prefix}-l1" class="block font-bold text-warmgray-900 mb-1">Choose a PIN</label>
+          <input id="${prefix}-c1" data-secret class="${INPUT}" type="password" autocomplete="new-password" maxlength="140"></div>
+        <div><label for="${prefix}-c2" class="block font-bold text-warmgray-900 mb-1">Type it again</label>
+          <input id="${prefix}-c2" data-secret class="${INPUT}" type="password" autocomplete="new-password" maxlength="140"></div>
+        ${showToggleHTML}`;
+    }
+    function wireCredFields(el, prefix) {
+      const sync = () => {
+        const t = el.querySelector(`input[name="${prefix}-type"]:checked`).value;
+        el.querySelector(`#${prefix}-l1`).textContent = t === 'pin' ? 'Choose a PIN (4 to 6 numbers)' : 'Choose a password (8 or more characters)';
+        el.querySelectorAll(`#${prefix}-c1, #${prefix}-c2`).forEach(i => { i.inputMode = t === 'pin' ? 'numeric' : 'text'; });
       };
-      const showCooldown = () => {
-        const left = cooldownLeft(p.id);
-        if (left > 0) { msg.textContent = `Too many tries. Please wait ${left} seconds.`; return true; }
-        return false;
-      };
-      const submit = async () => {
-        busy = true;
-        let ok = false;
-        try { ok = await verifyPin(p, entered); } catch (e) { ok = false; }
-        if (ok) { clearFails(p.id); await startSession(p); return; }
-        const f = recordFail(p.id);
-        entered = ''; drawDots(); busy = false;
-        if (f.until) {
-          showCooldown();
-          clearInterval(gateTimer);
-          gateTimer = setInterval(() => { if (!showCooldown()) { msg.textContent = ''; clearInterval(gateTimer); } }, 1000);
-        } else {
-          msg.textContent = 'That PIN is not right. Please try again.';
-        }
-      };
-      const press = key => {
-        if (busy) return;
-        if (cooldownLeft(p.id) > 0) { showCooldown(); return; }
-        msg.textContent = '';
-        if (key === 'back') entered = entered.slice(0, -1);
-        else if (entered.length < len) entered += key;
-        drawDots();
-        if (entered.length === len) submit();
-      };
-      const pad = el.querySelector('#pin-pad');
-      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back'].forEach(k => {
-        if (k === '') { pad.appendChild(document.createElement('div')); return; }
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'h-16 rounded-2xl bg-white border-2 border-warmgray-300 font-bold text-warmgray-900 active:bg-brand-100';
-        b.style.cssText = 'font-size:28px !important';
-        b.textContent = k === 'back' ? '⌫' : k;
-        b.setAttribute('aria-label', k === 'back' ? 'Delete last digit' : k);
-        b.addEventListener('click', () => press(k));
-        pad.appendChild(b);
-      });
-      gateKeyHandler = e => {
-        if (/^[0-9]$/.test(e.key)) press(e.key);
-        else if (e.key === 'Backspace') press('back');
-      };
-      document.addEventListener('keydown', gateKeyHandler);
-      drawDots();
-      if (showCooldown()) gateTimer = setInterval(() => { if (!showCooldown()) { msg.textContent = ''; clearInterval(gateTimer); } }, 1000);
-      el.querySelector('#gate-back').addEventListener('click', renderGateList);
-      el.querySelector('#gate-forgot').addEventListener('click', () => renderGateForgot(p));
+      el.querySelectorAll(`input[name="${prefix}-type"]`).forEach(r => r.addEventListener('change', sync));
+      sync(); showPasswordToggle(el);
+    }
+    function readCred(el, prefix) {
+      const type = el.querySelector(`input[name="${prefix}-type"]:checked`).value;
+      const c1 = el.querySelector(`#${prefix}-c1`).value, c2 = el.querySelector(`#${prefix}-c2`).value;
+      if (type === 'pin' && !/^\d{4,6}$/.test(c1)) return { error: 'A PIN must be 4 to 6 numbers.' };
+      if (type === 'password' && c1.length < 8) return { error: 'A password needs at least 8 characters.' };
+      if (c1 !== c2) return { error: 'The two entries do not match.' };
+      return { type, value: c1 };
     }
 
-    function renderGateForgot(p) {
-      resetGateListeners();
+    function renderCreate() {
       const el = gateInner();
+      showGate();
       el.innerHTML = `
-        <button type="button" id="gate-back" class="self-start text-brand-700 font-bold underline" style="min-height:44px">← Back</button>
-        <div class="text-center space-y-2">
-          <div class="text-5xl" aria-hidden="true">🔑</div>
-          <h1 class="text-2xl font-black text-warmgray-900">Forgot your PIN?</h1>
-        </div>
-        <div class="bg-white border-2 border-warmgray-200 rounded-2xl p-4 space-y-3 text-lg text-warmgray-800">
-          <p>Your PIN is never stored, so it <strong>cannot be recovered</strong>, not even by us.</p>
-          <p>If you saved a backup file from the Vault menu, you can start over with a new profile and restore the backup into it.</p>
-          <p>Otherwise, the only way back in is to delete this profile and its records from this device.</p>
-        </div>
-        <button type="button" id="gate-wipe" class="w-full p-4 rounded-2xl bg-rose-700 text-white font-bold text-lg">Delete "${escapeHTML(p.name)}" and start over</button>
-        ${legalLinksHTML()}`;
-      el.querySelector('#gate-back').addEventListener('click', () => renderGatePin(p));
-      el.querySelector('#gate-wipe').addEventListener('click', async () => {
-        if (!confirm(`This permanently deletes every record saved for "${p.name}" on this device. It cannot be undone. Continue?`)) return;
-        await removeProfileData(p);
-        gateProfiles = loadProfiles();
-        showProfileGate();
-      });
-    }
-
-    function renderGateCreate(first) {
-      resetGateListeners();
-      const el = gateInner();
-      const canPin = pinSupported();
-      const avatarOptions = AVATARS.map((a, i) => `
-        <label class="cursor-pointer">
-          <input type="radio" name="gate-avatar" value="${a}" class="sr-only peer" ${i === 0 ? 'checked' : ''}>
-          <span class="flex w-14 h-14 items-center justify-center rounded-2xl border-2 border-warmgray-300 bg-white text-3xl peer-checked:border-brand-600 peer-checked:bg-brand-100 peer-checked:ring-4 peer-checked:ring-brand-200 peer-focus-visible:ring-4 peer-focus-visible:ring-brand-500">${a}</span>
-        </label>`).join('');
-      el.innerHTML = `
-        ${first ? '' : '<button type="button" id="gate-back" class="self-start text-brand-700 font-bold underline" style="min-height:44px">← Cancel</button>'}
-        <div class="text-center space-y-1">
-          <div class="text-5xl" aria-hidden="true">${first ? '🌱' : '👤'}</div>
-          <h1 class="text-2xl font-black text-brand-900">${first ? 'Welcome to Golden Pace' : 'Add a profile'}</h1>
-          <p class="text-lg text-warmgray-700">${first ? 'Let\'s set up your profile.' : 'Each person gets private records of their own.'}</p>
-        </div>
-        ${first ? `<div class="rounded-2xl bg-amberlead-50 border-2 border-amberlead-400 p-4 space-y-2 text-base text-warmgray-900">
-          <p class="font-bold text-lg">There is no login or password.</p>
-          <p>Golden Pace keeps your records <b>on this device only</b>, so there is no account to sign in to. Your name below is just a label, and your PIN (optional) only locks this device.</p>
-          <p><b>Used Golden Pace before?</b> Your records stay in the place you used it (the same phone and the same icon or browser). A home-screen icon and a web browser on the same phone keep separate records. If you saved a backup file, you can bring your records in below.</p>
-        </div>` : ''}
-        <form id="gate-create-form" class="bg-white border-2 border-warmgray-200 rounded-2xl p-4 space-y-4" novalidate>
-          <div>
-            <label for="gate-name" class="block font-bold text-warmgray-900 mb-1">Your name</label>
-            <input id="gate-name" type="text" maxlength="24" autocomplete="off" required class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl" placeholder="For example: Alex">
-          </div>
-          <fieldset>
-            <legend class="font-bold text-warmgray-900 mb-2">Pick a picture</legend>
-            <div class="flex flex-wrap gap-2">${avatarOptions}</div>
-          </fieldset>
-          <fieldset class="space-y-2">
-            <legend class="font-bold text-warmgray-900 mb-1">Keep this profile private?</legend>
-            ${canPin ? `
-            <label class="flex items-start gap-3 p-3 rounded-xl border border-warmgray-300 bg-warmgray-50">
-              <input type="radio" name="gate-pinmode" value="pin" checked class="w-6 h-6 mt-0.5">
-              <span><strong>Protect with a PIN</strong> (recommended)<br><span class="text-base text-warmgray-600">4 to 6 numbers. Stops others using this device from opening your records.</span></span>
-            </label>` : ''}
-            <label class="flex items-start gap-3 p-3 rounded-xl border border-warmgray-300 bg-warmgray-50">
-              <input type="radio" name="gate-pinmode" value="none" ${canPin ? '' : 'checked'} class="w-6 h-6 mt-0.5">
-              <span><strong>No PIN</strong><br><span class="text-base text-warmgray-600">Anyone using this device can open this profile.</span></span>
-            </label>
-            ${canPin ? '' : '<p class="text-base text-warmgray-600">PINs need a secure connection (https), so they are turned off here.</p>'}
-          </fieldset>
-          <div id="gate-pin-fields" class="space-y-3 ${canPin ? '' : 'hidden'}">
-            <div>
-              <label for="gate-pin1" class="block font-bold text-warmgray-900 mb-1">Choose a PIN (4 to 6 numbers)</label>
-              <input id="gate-pin1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest">
-            </div>
-            <div>
-              <label for="gate-pin2" class="block font-bold text-warmgray-900 mb-1">Type the PIN again</label>
-              <input id="gate-pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest">
-            </div>
-            <p class="text-base text-warmgray-600">Write your PIN down somewhere safe. It cannot be recovered if you forget it.</p>
-          </div>
-          ${first ? `<div class="p-3 rounded-xl border border-warmgray-300 bg-warmgray-50 space-y-1">
-            <label for="gate-restore" class="block font-bold text-warmgray-900">Have a backup file? (optional)</label>
-            <p class="text-base text-warmgray-700">Choose the .json file you saved from the Vault menu and your records come back after you create your profile.</p>
-            <input id="gate-restore" type="file" accept=".json,application/json" class="block w-full text-base text-warmgray-700 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:font-bold file:bg-brand-100 file:text-brand-800">
-          </div>` : ''}
+        <button type="button" id="cr-back" class="self-start ${LINKBTN}" style="min-height:44px">← Back to sign in</button>
+        ${header('👤', 'Create your account', 'It is free. Your records will be saved to your account so you can reach them from any phone or computer.')}
+        <form id="create-form" class="bg-white border-2 border-warmgray-200 rounded-2xl p-4 space-y-4" novalidate>
+          <div><label for="cr-user" class="block font-bold text-warmgray-900 mb-1">Choose a username</label>
+            <input id="cr-user" class="${INPUT}" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="24" placeholder="For example: bill.b">
+            <p class="text-base text-warmgray-600 mt-1">3 to 24 letters or numbers. It is not shown to anyone else.</p></div>
+          ${credFields('cr')}
           <label class="flex items-start gap-3 p-3 rounded-xl bg-brand-50 border border-brand-200">
-            <input id="gate-consent" type="checkbox" class="w-6 h-6 mt-0.5 flex-shrink-0">
+            <input id="cr-consent" type="checkbox" class="w-6 h-6 mt-0.5 flex-shrink-0">
             <span class="text-base">I have read and agree to the
               <a href="terms.html" target="_blank" rel="noopener" class="underline font-semibold text-brand-700">Terms of Use</a> and
               <a href="privacy.html" target="_blank" rel="noopener" class="underline font-semibold text-brand-700">Privacy Policy</a>.</span>
           </label>
-          <p id="gate-error" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>
-          <button type="submit" id="gate-create-btn" class="w-full p-4 rounded-2xl bg-brand-600 text-white font-bold text-lg">Create profile</button>
+          <p id="cr-err" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>
+          <button type="submit" id="cr-btn" class="${BTN}">Create my account</button>
         </form>
         ${legalLinksHTML()}`;
-
-      const form = el.querySelector('#gate-create-form');
-      const err = el.querySelector('#gate-error');
-      const pinFields = el.querySelector('#gate-pin-fields');
-      form.querySelectorAll('input[name="gate-pinmode"]').forEach(r => r.addEventListener('change', () => {
-        pinFields.classList.toggle('hidden', form.querySelector('input[name="gate-pinmode"]:checked').value !== 'pin');
-      }));
-      if (!first) el.querySelector('#gate-back').addEventListener('click', renderGateList);
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-        err.textContent = '';
-        const name = el.querySelector('#gate-name').value.trim();
-        const usePin = canPin && form.querySelector('input[name="gate-pinmode"]:checked').value === 'pin';
-        const pin1 = el.querySelector('#gate-pin1').value;
-        const pin2 = el.querySelector('#gate-pin2').value;
-        if (!name) { err.textContent = 'Please type your name.'; return; }
-        if (loadProfiles().some(p => p.name.toLowerCase() === name.toLowerCase())) { err.textContent = 'That name is already used. Please pick another.'; return; }
-        if (usePin && !/^\d{4,6}$/.test(pin1)) { err.textContent = 'Your PIN must be 4 to 6 numbers.'; return; }
-        if (usePin && pin1 !== pin2) { err.textContent = 'The two PINs do not match.'; return; }
-        if (!el.querySelector('#gate-consent').checked) { err.textContent = 'Please tick the box to agree to the Terms and Privacy Policy.'; return; }
-        el.querySelector('#gate-create-btn').disabled = true;
+      wireCredFields(el, 'cr');
+      el.querySelector('#cr-back').addEventListener('click', () => renderLogin());
+      const err = el.querySelector('#cr-err');
+      el.querySelector('#create-form').addEventListener('submit', async e => {
+        e.preventDefault(); err.textContent = '';
+        const username = el.querySelector('#cr-user').value.trim();
+        if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,23}$/.test(username)) { err.textContent = 'A username is 3 to 24 letters or numbers. You may also use . - or _ inside it.'; return; }
+        const c = readCred(el, 'cr'); if (c.error) { err.textContent = c.error; return; }
+        if (!el.querySelector('#cr-consent').checked) { err.textContent = 'Please tick the box to agree to the Terms and Privacy Policy.'; return; }
+        const btn = el.querySelector('#cr-btn'); btn.disabled = true; btn.textContent = 'Creating...';
         try {
-          const id = newProfileId();
-          const p = {
-            id, name,
-            avatar: form.querySelector('input[name="gate-avatar"]:checked').value,
-            dbName: `GoldenPace_${id}`,
-            pin: usePin ? await makePinRecord(pin1) : null,
-            pinLen: usePin ? pin1.length : 0,
-            createdAt: Date.now(), lastUsed: Date.now()
-          };
-          gateProfiles = [...loadProfiles(), p];
-          saveProfiles(gateProfiles);
-          const restoreEl = el.querySelector('#gate-restore');
-          const restoreFile = restoreEl && restoreEl.files && restoreEl.files[0];
-          await startSession(p);
-          if (restoreFile) await triggerRestoreBackup(restoreFile);
-        } catch (ex) {
-          console.error(ex);
-          err.textContent = 'Sorry, the profile could not be created on this device.';
-          el.querySelector('#gate-create-btn').disabled = false;
-        }
+          const r = await api('POST', '/api/signup', { username, credType: c.type, credential: c.value, consent: true });
+          if (r.ok) return renderRecovery(r.user, r.recoveryCode, 'Your account is ready');
+          err.textContent = r.message || 'Sorry, the account could not be created. Please try again.';
+        } catch (ex) { err.textContent = 'Cannot reach Golden Pace. Please check your internet connection.'; }
+        btn.disabled = false; btn.textContent = 'Create my account';
       });
-      el.querySelector('#gate-name').focus();
+      el.querySelector('#cr-user').focus();
     }
 
-    /* ---- Profile & Lock menu (inside the app) ---- */
-    function lockNow() {
-      try { sessionStorage.removeItem(ACTIVE_KEY); } catch (e) {}
-      location.reload();   // a clean reload guarantees no data from this profile stays in memory
+    // Shown once after sign-up, after a reset and whenever a new code is made.
+    function renderRecovery(user, code, title, onDone) {
+      const el = gateInner();
+      showGate();
+      el.innerHTML = `
+        ${header('🔑', escapeHTML(title), 'One last important step.')}
+        <div class="rounded-2xl bg-amberlead-50 border-2 border-amberlead-400 p-4 space-y-3">
+          <p class="text-lg font-bold">Your recovery code</p>
+          <p id="rc-code" class="text-3xl font-black tracking-wider text-center text-brand-900 select-all" style="font-family:ui-monospace,Menlo,Consolas,monospace">${escapeHTML(code)}</p>
+          <p class="text-lg">If you ever forget your password or PIN, this code is the <b>only</b> way to get back in. <b>We cannot look it up or reset it for you.</b> Please write it on paper and keep it somewhere safe.</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" id="rc-copy" class="p-3 rounded-xl bg-white border-2 border-brand-500 text-brand-800 font-bold">Copy it</button>
+            <button type="button" id="rc-save" class="p-3 rounded-xl bg-white border-2 border-brand-500 text-brand-800 font-bold">Save as a file</button>
+          </div>
+        </div>
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-brand-50 border border-brand-200">
+          <input id="rc-ok" type="checkbox" class="w-6 h-6 mt-0.5 flex-shrink-0">
+          <span class="text-lg">I wrote down or saved my recovery code.</span></label>
+        <button type="button" id="rc-go" class="${BTN}" disabled style="opacity:.5">Continue to Golden Pace</button>`;
+      const ok = el.querySelector('#rc-ok'), go = el.querySelector('#rc-go');
+      ok.addEventListener('change', () => { go.disabled = !ok.checked; go.style.opacity = ok.checked ? '1' : '.5'; });
+      el.querySelector('#rc-copy').addEventListener('click', async e => {
+        try { await navigator.clipboard.writeText(code); e.target.textContent = 'Copied'; } catch (x) { e.target.textContent = 'Press and hold the code to copy'; }
+      });
+      el.querySelector('#rc-save').addEventListener('click', () => {
+        const blob = new Blob([`Golden Pace recovery code for ${user.username}\n\n${code}\n\nKeep this somewhere safe. It is the only way to reset your password or PIN.\n`], { type: 'text/plain' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Golden-Pace-recovery-code.txt';
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      });
+      go.addEventListener('click', () => (onDone ? onDone() : afterAuth(user)));
     }
+
+    function renderReset(prefillUser) {
+      const el = gateInner();
+      showGate();
+      el.innerHTML = `
+        <button type="button" id="rs-back" class="self-start ${LINKBTN}" style="min-height:44px">← Back to sign in</button>
+        ${header('🔓', 'Reset my password or PIN', 'Type your username and the recovery code you saved when you made your account.')}
+        <form id="reset-form" class="bg-white border-2 border-warmgray-200 rounded-2xl p-4 space-y-4" novalidate>
+          <div><label for="rs-user" class="block font-bold text-warmgray-900 mb-1">Username</label>
+            <input id="rs-user" class="${INPUT}" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="40" value="${escapeHTML(prefillUser || '')}"></div>
+          <div><label for="rs-code" class="block font-bold text-warmgray-900 mb-1">Recovery code</label>
+            <input id="rs-code" class="${INPUT}" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder="XXXX-XXXX-XXXX-XXXX" style="font-family:ui-monospace,Menlo,Consolas,monospace"></div>
+          <p class="text-lg font-bold text-warmgray-900">Now choose your new way to sign in:</p>
+          ${credFields('rs')}
+          <p id="rs-err" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>
+          <button type="submit" id="rs-btn" class="${BTN}">Reset and sign me in</button>
+        </form>
+        <p class="text-base text-warmgray-700">Lost your recovery code too? Sorry, we cannot verify who you are without it, so the records in that account cannot be opened. You can make a new account.</p>
+        ${legalLinksHTML()}`;
+      wireCredFields(el, 'rs');
+      el.querySelector('#rs-back').addEventListener('click', () => renderLogin());
+      const err = el.querySelector('#rs-err');
+      el.querySelector('#reset-form').addEventListener('submit', async e => {
+        e.preventDefault(); err.textContent = '';
+        const username = el.querySelector('#rs-user').value.trim(), code = el.querySelector('#rs-code').value.trim();
+        if (!username || !code) { err.textContent = 'Please type your username and your recovery code.'; return; }
+        const c = readCred(el, 'rs'); if (c.error) { err.textContent = c.error; return; }
+        const btn = el.querySelector('#rs-btn'); btn.disabled = true; btn.textContent = 'Resetting...';
+        try {
+          const r = await api('POST', '/api/reset', { username, code, credType: c.type, credential: c.value });
+          if (r.ok) return renderRecovery(r.user, r.recoveryCode, 'Done. You are signed in', null);
+          err.textContent = r.message || 'Sorry, that did not work.';
+        } catch (ex) { err.textContent = 'Cannot reach Golden Pace. Please check your internet connection.'; }
+        btn.disabled = false; btn.textContent = 'Reset and sign me in';
+      });
+      el.querySelector(prefillUser ? '#rs-code' : '#rs-user').focus();
+    }
+
+    // After any successful sign-in.
+    async function afterAuth(user) {
+      rememberUser(user);
+      if (currentProfile) { location.reload(); return; }   // signing back in after the session ended
+      await startSession(user);
+    }
+    function rememberUser(user) { lsSet(LAST_USER_KEY, JSON.stringify({ id: user.id, username: user.username, credType: user.credType })); }
+    function lastUser() { try { const u = JSON.parse(lsGet(LAST_USER_KEY) || 'null'); return u && u.id ? u : null; } catch (e) { return null; } }
+
+    /* ---------------------------------------------------------
+       Starting the app for a signed-in person
+       --------------------------------------------------------- */
+    async function bootstrapProfiles() {   // called from window.onload
+      try {
+        let me = null, offline = false;
+        try { me = await api('GET', '/api/me'); } catch (e) { offline = true; }
+        if (me && me.status === 200 && me.ok) { await startSession(me.user); return; }
+        if (offline) {
+          const last = lastUser();
+          if (last) { await startSession(last, { offline: true }); return; }
+          renderLogin('You are offline. Please connect to the internet to sign in.');
+          return;
+        }
+        renderLogin();
+      } catch (err) {
+        console.error('Startup failed:', err);
+        showFatal('Golden Pace could not open its storage on this device. If you are in a private or incognito window, please open it in a normal window.');
+      }
+    }
+
+    async function startSession(user, opts = {}) {
+      currentProfile = { id: 'u' + user.id, name: user.username, userId: user.id, credType: user.credType };
+      rememberUser(user);
+      db = openProfileDb('GoldenPace_u' + user.id);
+      registerSyncHooks(db);
+      hideGate();
+      document.getElementById('profile-bar-name').textContent = user.username;
+      const meta = document.getElementById('print-header-meta');
+      if (meta) meta.textContent = `Prepared for: ${user.username} • Generated for Primary Care & Geriatric Wellness Consultation`;
+      await initApp();
+      setSyncStatus(opts.offline ? 'offline' : 'saving');
+      await maybeOfferImport();
+      syncNow();
+    }
+
+    /* ---------------------------------------------------------
+       Sync: local database <-> account
+       --------------------------------------------------------- */
+    let syncTimer = null, syncBusy = false, dirtyTick = 0, lastSynced = 0, hydrating = false;
+    const revKey = () => pkey('sync_rev'), dirtyKey = () => pkey('sync_dirty');
+    function setSyncStatus(state) {
+      const el = document.getElementById('sync-status');
+      if (!el) return;
+      const t = {
+        saving: '☁ Saving…', saved: '☁ Saved to your account', offline: '☁ Offline. Will save when you are back online',
+        signin: '☁ Please sign in again to keep saving', error: '☁ Could not save yet. Will retry'
+      }[state] || '';
+      el.textContent = t;
+      el.dataset.state = state;
+    }
+    function registerSyncHooks(d) {
+      TABLES.forEach(t => {
+        d[t].hook('creating', () => { if (!applyingRemote) markDirty(); });
+        d[t].hook('updating', () => { if (!applyingRemote) markDirty(); });
+        d[t].hook('deleting', () => { if (!applyingRemote) markDirty(); });
+      });
+    }
+    function markDirty() {
+      dirtyTick++;
+      lsSet(dirtyKey(), '1');
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(syncNow, 3000);
+    }
+    window.gpMarkDirty = markDirty;
+
+    async function readSnapshot() {
+      const s = {};
+      for (const t of TABLES) s[t] = await db[t].toArray();
+      return s;
+    }
+    const hashCache = new Map();
+    async function sha256hex(str) {
+      if (hashCache.has(str)) return hashCache.get(str);
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      const h = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      hashCache.set(str, h);
+      return h;
+    }
+    const mealKey = m => [m.date, m.time, m.type, m.desc].join('|');
+    const keyOf = {
+      vitals: v => `${v.date}|${v.bpContext || ''}`,
+      meals: mealKey,
+      milestones: m => `${m.date}|${m.type}|${m.score}`,
+      hydration: h => h.date,
+      reminders: r => r.id
+    };
+    // Combines two copies (for example, this phone and another device) without losing either side's entries.
+    function mergeSnapshots(a, b) {   // a = this device (wins ties), b = account copy
+      const out = {};
+      for (const t of ['vitals', 'meals', 'milestones', 'hydration', 'reminders']) {
+        const map = new Map();
+        for (const r of b[t] || []) map.set(keyOf[t](r), r);
+        for (const r of a[t] || []) {
+          const k = keyOf[t](r), o = map.get(k);
+          if (t === 'meals' && o) map.set(k, Object.assign({}, o, r, { image: r.image || o.image || null, imageHash: r.imageHash || o.imageHash }));
+          else if (t === 'hydration' && o) map.set(k, { date: r.date, cupsCount: Math.max(r.cupsCount || 0, o.cupsCount || 0) });
+          else map.set(k, r);
+        }
+        out[t] = Array.from(map.values());
+      }
+      for (const t of ['vitals', 'meals', 'milestones']) {
+        out[t].sort((x, y) => String(x.date + (x.time || '')).localeCompare(String(y.date + (y.time || ''))));
+        out[t].forEach((r, i) => { r.id = i + 1; });
+      }
+      const ga = (a.gamification || [])[0], gb = (b.gamification || [])[0];
+      let g = ga || gb;
+      if (ga && gb) {
+        g = (gb.xp || 0) > (ga.xp || 0) ? Object.assign({}, ga, gb) : Object.assign({}, gb, ga);
+        g.badges = Array.from(new Set([...(ga.badges || []), ...(gb.badges || [])]));
+      }
+      out.gamification = g ? [g] : [];
+      return out;
+    }
+    const hasData = s => TABLES.some(t => t !== 'reminders' && t !== 'gamification' && (s[t] || []).length > 0) || ((s.gamification || [])[0] || {}).xp > 0;
+
+    async function applySnapshot(snap, localForImages) {
+      const localImg = new Map();
+      (localForImages && localForImages.meals || []).forEach(m => { if (m.image) localImg.set(mealKey(m), m.image); });
+      applyingRemote = true;
+      try {
+        await db.transaction('rw', db.vitals, db.meals, db.hydration, db.milestones, db.reminders, db.gamification, async () => {
+          for (const t of TABLES) await db[t].clear();
+          if (snap.vitals.length) await db.vitals.bulkPut(snap.vitals);
+          if (snap.meals.length) await db.meals.bulkPut(snap.meals.map(m => Object.assign({}, m, { image: m.image || localImg.get(mealKey(m)) || null })));
+          if (snap.hydration.length) await db.hydration.bulkPut(snap.hydration);
+          if (snap.milestones.length) await db.milestones.bulkPut(snap.milestones);
+          if (snap.reminders.length) await db.reminders.bulkPut(snap.reminders);
+          if (snap.gamification.length) await db.gamification.bulkPut(snap.gamification);
+        });
+      } finally { applyingRemote = false; }
+      await initGamification();
+      await initReminders();
+      await loadAllDataFromDB();
+      renderWaterTracker(); renderMealsList(); renderReports(); renderMilestonesList();
+      hydrateMealImages();
+    }
+    // Meal photos are downloaded after the records so the screen appears quickly.
+    async function hydrateMealImages() {
+      if (hydrating) return;
+      hydrating = true;
+      try {
+        const todo = (await db.meals.toArray()).filter(m => !m.image && m.imageHash);
+        let changed = false;
+        for (const m of todo) {
+          const r = await api('GET', '/api/image/' + m.imageHash);
+          if (r.ok && r.data) { applyingRemote = true; try { await db.meals.update(m.id, { image: r.data }); } finally { applyingRemote = false; } changed = true; }
+        }
+        if (changed) { await loadAllDataFromDB(); renderMealsList(); }
+      } catch (e) { /* offline: try again next time */ }
+      hydrating = false;
+    }
+
+    async function buildPayload(snap) {
+      const meals = [], hashes = new Map();
+      for (const m of snap.meals) {
+        const c = Object.assign({}, m);
+        if (m.image) { c.imageHash = await sha256hex(m.image); hashes.set(c.imageHash, m.image); }
+        delete c.image;
+        meals.push(c);
+      }
+      return { payload: Object.assign({}, snap, { meals }), hashes };
+    }
+    async function uploadImages(hashes) {
+      if (!hashes.size) return true;
+      const r = await api('POST', '/api/images/missing', { hashes: Array.from(hashes.keys()) });
+      if (!r.ok) return r.status === 401 ? 'signin' : false;
+      for (const h of r.missing) {
+        const p = await api('PUT', '/api/image/' + h, { data: hashes.get(h) });
+        if (p.status === 401) return 'signin';
+        if (!p.ok && p.error !== 'quota') return false;   // a full photo allowance must not block saving the numbers
+      }
+      return true;
+    }
+
+    async function syncNow() {
+      if (!currentProfile || syncBusy) return;
+      clearTimeout(syncTimer);
+      if (!navigator.onLine) { setSyncStatus('offline'); return; }
+      syncBusy = true;
+      try {
+        setSyncStatus('saving');
+        for (let attempt = 0; attempt < 4; attempt++) {
+          const remote = await api('GET', '/api/vault');
+          if (remote.status === 401) { setSyncStatus('signin'); onSessionEnded(); return; }
+          if (!remote.ok) { setSyncStatus('error'); return; }
+          const localRev = Number(lsGet(revKey()) || 0);
+          const dirty = lsGet(dirtyKey()) === '1';
+          let local = await readSnapshot();
+          let baseRev = remote.rev, needPush = false;
+          if (remote.rev === 0) {
+            needPush = hasData(local) || dirty;
+            if (!needPush) { lastSynced = Date.now(); setSyncStatus('saved'); return; }
+          } else if (remote.rev === localRev) {
+            needPush = dirty;
+          } else if (!dirty && localRev > 0) {
+            await applySnapshot(remote.data, local);          // another device changed things: take the account copy
+            lsSet(revKey(), String(remote.rev));
+            lastSynced = Date.now(); setSyncStatus('saved'); return;
+          } else {
+            const merged = mergeSnapshots(local, remote.data);  // both changed: keep everything from both
+            await applySnapshot(merged, local);
+            local = merged; needPush = true;
+          }
+          if (!needPush) { lsSet(revKey(), String(remote.rev)); lastSynced = Date.now(); setSyncStatus('saved'); return; }
+          const tick = dirtyTick;
+          const { payload, hashes } = await buildPayload(local);
+          const up = await uploadImages(hashes);
+          if (up === 'signin') { setSyncStatus('signin'); onSessionEnded(); return; }
+          if (!up) { setSyncStatus('error'); return; }
+          const put = await api('PUT', '/api/vault', { baseRev, data: payload });
+          if (put.status === 401) { setSyncStatus('signin'); onSessionEnded(); return; }
+          if (put.ok) {
+            lsSet(revKey(), String(put.rev));
+            if (tick === dirtyTick) lsRemove(dirtyKey()); else markDirty();
+            lastSynced = Date.now(); setSyncStatus('saved'); return;
+          }
+          if (put.status !== 409) { setSyncStatus('error'); return; }
+        }
+        setSyncStatus('error');
+      } catch (e) {
+        setSyncStatus(navigator.onLine ? 'error' : 'offline');
+      } finally { syncBusy = false; }
+    }
+    function onSessionEnded() {
+      syncBusy = false;
+      showToast('Please sign in again', 'Your sign-in expired. Your records on this device are safe.', { sticky: true });
+    }
+    window.addEventListener('online', () => syncNow());
+    window.addEventListener('offline', () => setSyncStatus('offline'));
+    document.addEventListener('visibilitychange', () => {
+      if (!currentProfile) return;
+      if (document.visibilityState === 'hidden') { if (lsGet(dirtyKey()) === '1') syncNow(); return; }
+      if (Date.now() - lastSynced > 60000) syncNow();
+    });
+    setInterval(() => { if (currentProfile && document.visibilityState === 'visible' && Date.now() - lastSynced > 180000) syncNow(); }, 60000);
+
+    /* ---------------------------------------------------------
+       Bringing in records saved on this device before accounts existed
+       --------------------------------------------------------- */
+    async function localSources() {
+      let list = [];
+      try { const l = JSON.parse(lsGet(PROFILES_KEY) || '[]'); if (Array.isArray(l)) list = l.map(p => ({ name: p.name, dbName: p.dbName })); } catch (e) {}
+      if (!list.length) { try { if (await Dexie.exists(LEGACY_DB)) list = [{ name: 'My Profile', dbName: LEGACY_DB }]; } catch (e) {} }
+      const out = [];
+      for (const s of list) {
+        try {
+          const d = openProfileDb(s.dbName);
+          const n = (await d.vitals.count()) + (await d.meals.count()) + (await d.milestones.count());
+          d.close();
+          if (n > 0) out.push(Object.assign({ count: n }, s));
+        } catch (e) {}
+      }
+      return out;
+    }
+    async function maybeOfferImport() {
+      if (lsGet(pkey('import_done'))) return;
+      const src = await localSources();
+      if (!src.length) { lsSet(pkey('import_done'), '1'); return; }
+      renderImportOffer(src);
+    }
+    function renderImportOffer(src) {
+      const el = gateInner();
+      showGate();
+      el.innerHTML = `
+        ${header('📦', 'Records found on this device', 'You used Golden Pace here before accounts existed. Would you like to bring those records into your account?')}
+        <div id="im-list" class="flex flex-col space-y-3"></div>
+        <p id="im-err" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>
+        <button type="button" id="im-skip" class="${BTN2}">Not now</button>`;
+      const err = el.querySelector('#im-err');
+      src.forEach(s => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'w-full p-4 bg-white border-2 border-warmgray-200 rounded-2xl text-left shadow-sm';
+        b.innerHTML = `<span class="block text-xl font-bold text-warmgray-900">${escapeHTML(s.name)}</span><span class="block text-base text-warmgray-600">${s.count} saved records. Tap to add them to my account.</span>`;
+        b.addEventListener('click', async () => {
+          b.disabled = true; err.textContent = '';
+          try {
+            const d = openProfileDb(s.dbName), imp = {};
+            for (const t of TABLES) imp[t] = await d[t].toArray();
+            d.close();
+            const local = await readSnapshot();
+            const merged = mergeSnapshots(local, imp);
+            await applySnapshot(merged, local);
+            markDirty();
+            lsSet(pkey('import_done'), '1');
+            hideGate();
+            showToast('Records added', 'Your older records are now in your account.');
+            syncNow();
+          } catch (ex) { console.error(ex); err.textContent = 'Sorry, those records could not be added.'; b.disabled = false; }
+        });
+        el.querySelector('#im-list').appendChild(b);
+      });
+      el.querySelector('#im-skip').addEventListener('click', () => { lsSet(pkey('import_done'), '1'); hideGate(); });
+    }
+
+    /* ---------------------------------------------------------
+       Account menu (inside the app)
+       --------------------------------------------------------- */
     function closeProfileModal() { document.getElementById('profile-modal').classList.add('hidden'); }
-    function openProfileModal() {
-      document.getElementById('profile-modal').classList.remove('hidden');
-      renderProfileMenu();
-    }
+    function openProfileModal() { document.getElementById('profile-modal').classList.remove('hidden'); renderProfileMenu(); }
     function profileBody() { return document.getElementById('profile-modal-body'); }
+    const MBTN = 'w-full p-3.5 rounded-xl bg-warmgray-100 text-warmgray-900 font-bold border border-warmgray-300';
+    const MERR = '<p id="pm-err" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>';
 
     function renderProfileMenu() {
-      const p = currentProfile;
-      const body = profileBody();
+      const p = currentProfile, body = profileBody();
       body.innerHTML = `
-        <div class="flex items-center gap-3 p-3 bg-brand-50 border border-brand-200 rounded-2xl">
-          <span class="w-14 h-14 rounded-2xl bg-brand-100 flex items-center justify-center text-3xl" aria-hidden="true">${escapeHTML(p.avatar)}</span>
-          <div><div class="text-xl font-bold text-warmgray-900">${escapeHTML(p.name)}</div>
-          <div class="text-base text-warmgray-600">${p.pin ? '🔒 PIN protected' : 'No PIN set'}</div></div>
+        <div class="flex items-center gap-4 p-3 rounded-2xl bg-brand-50 border border-brand-200">
+          <span class="w-14 h-14 rounded-2xl bg-brand-100 flex items-center justify-center text-3xl" aria-hidden="true">🌱</span>
+          <div class="min-w-0"><p class="text-xl font-bold text-warmgray-900 truncate">${escapeHTML(p.name)}</p>
+            <p id="pm-sync" class="text-base text-warmgray-700"></p></div>
         </div>
-        <button type="button" id="pm-lock" class="w-full p-3.5 rounded-xl bg-brand-600 text-white font-bold flex items-center justify-center gap-2"><span>🔒</span> Lock / Switch profile</button>
-        ${pinSupported() ? `<button type="button" id="pm-pin" class="w-full p-3.5 rounded-xl bg-warmgray-100 text-warmgray-900 font-bold border border-warmgray-300">🔑 ${p.pin ? 'Change or remove my PIN' : 'Add a PIN'}</button>` : ''}
-        <button type="button" id="pm-delete" class="w-full p-3.5 rounded-xl bg-rose-50 text-rose-800 font-bold border border-rose-300">🗑 Delete this profile</button>
-        <p class="text-base text-warmgray-600">${p.pin ? 'Golden Pace also locks itself after 5 minutes away from the screen.' : 'Without a PIN, Golden Pace never locks itself.'} A PIN keeps other people from opening your records, but it does not scramble them. Please also use your phone\'s own screen lock.</p>
+        <button type="button" id="pm-sync-btn" class="${MBTN}">🔄 Save to my account now</button>
+        <button type="button" id="pm-cred" class="${MBTN}">🔑 Change my password or PIN</button>
+        <button type="button" id="pm-rec" class="${MBTN}">📝 Make a new recovery code</button>
+        <button type="button" id="pm-out" class="w-full p-3.5 rounded-xl bg-brand-600 text-white font-bold">🔒 Sign out</button>
+        <button type="button" id="pm-out-clear" class="${MBTN}">Sign out and remove my records from this device</button>
+        <button type="button" id="pm-delete" class="w-full p-3.5 rounded-xl bg-rose-50 text-rose-800 font-bold border border-rose-300">🗑 Delete my account</button>
+        <p class="text-base text-warmgray-600">Your records are saved to your account whenever you are online, and kept on this device so Golden Pace works offline. On a shared computer, use &ldquo;Sign out and remove my records from this device.&rdquo; Your Gemini key never leaves this device.</p>
         <p class="text-center text-base"><a href="welcome.html" class="underline font-semibold text-brand-700">About</a> &middot; <a href="faq.html" class="underline font-semibold text-brand-700">Help &amp; FAQ</a> &middot; <a href="privacy.html" class="underline font-semibold text-brand-700">Privacy</a> &middot; <a href="terms.html" class="underline font-semibold text-brand-700">Terms</a></p>
         <button type="button" class="w-full p-3 rounded-xl bg-warmgray-200 text-warmgray-900 font-bold" onclick="closeProfileModal()">Close</button>`;
-      body.querySelector('#pm-lock').addEventListener('click', lockNow);
-      const pinBtn = body.querySelector('#pm-pin');
-      if (pinBtn) pinBtn.addEventListener('click', renderPinPanel);
+      const st = document.getElementById('sync-status');
+      body.querySelector('#pm-sync').textContent = st ? st.textContent : '';
+      body.querySelector('#pm-sync-btn').addEventListener('click', async () => { await syncNow(); renderProfileMenu(); });
+      body.querySelector('#pm-cred').addEventListener('click', renderCredPanel);
+      body.querySelector('#pm-rec').addEventListener('click', renderRecoveryPanel);
+      body.querySelector('#pm-out').addEventListener('click', () => signOut(false));
+      body.querySelector('#pm-out-clear').addEventListener('click', () => signOut(true));
       body.querySelector('#pm-delete').addEventListener('click', renderDeletePanel);
     }
 
-    function renderPinPanel() {
-      const p = currentProfile;
+    function reauthField() {
+      return `<div><label for="pm-cur" class="block font-bold mb-1">Your current password or PIN</label><input id="pm-cur" data-secret type="password" autocomplete="current-password" maxlength="140" class="${INPUT}"></div>`;
+    }
+    function renderCredPanel() {
       const body = profileBody();
       body.innerHTML = `
-        <h4 class="text-lg font-bold text-warmgray-900">${p.pin ? 'Change or remove my PIN' : 'Add a PIN'}</h4>
-        <form id="pm-pin-form" class="space-y-3" novalidate>
-          ${p.pin ? '<div><label for="pm-cur" class="block font-bold mb-1">Current PIN</label><input id="pm-cur" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest"></div>' : ''}
-          <div><label for="pm-new" class="block font-bold mb-1">New PIN (4 to 6 numbers)</label><input id="pm-new" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest"></div>
-          <div><label for="pm-new2" class="block font-bold mb-1">Type the new PIN again</label><input id="pm-new2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest"></div>
-          <p id="pm-err" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>
-          <button type="submit" class="w-full p-3.5 rounded-xl bg-brand-600 text-white font-bold">Save PIN</button>
-          ${p.pin ? '<button type="button" id="pm-remove" class="w-full p-3 rounded-xl bg-warmgray-100 text-warmgray-900 font-bold border border-warmgray-300">Remove my PIN (needs the current PIN above)</button>' : ''}
+        <h4 class="text-lg font-bold text-warmgray-900">Change my password or PIN</h4>
+        <form id="pm-form" class="space-y-3" novalidate>
+          ${reauthField()}
+          ${credFields('pm')}
+          ${MERR}
+          <button type="submit" class="w-full p-3.5 rounded-xl bg-brand-600 text-white font-bold">Save</button>
           <button type="button" id="pm-cancel" class="w-full p-3 rounded-xl bg-warmgray-200 text-warmgray-900 font-bold">Back</button>
         </form>`;
-      const err = body.querySelector('#pm-err');
-      const checkCurrent = async () => {
-        if (!p.pin) return true;
-        const cur = body.querySelector('#pm-cur').value;
-        if (!/^\d{4,6}$/.test(cur) || !(await verifyPin(p, cur))) { err.textContent = 'The current PIN is not right.'; return false; }
-        return true;
-      };
-      body.querySelector('#pm-pin-form').addEventListener('submit', async e => {
-        e.preventDefault(); err.textContent = '';
-        if (!(await checkCurrent())) return;
-        const n1 = body.querySelector('#pm-new').value, n2 = body.querySelector('#pm-new2').value;
-        if (!/^\d{4,6}$/.test(n1)) { err.textContent = 'Your PIN must be 4 to 6 numbers.'; return; }
-        if (n1 !== n2) { err.textContent = 'The two PINs do not match.'; return; }
-        const rec = await makePinRecord(n1);
-        p.pin = rec; p.pinLen = n1.length;
-        saveProfiles(loadProfiles().map(x => (x.id === p.id ? p : x)));
-        clearFails(p.id);
-        showToast('PIN saved', 'Please keep it somewhere safe. It cannot be recovered.');
-        renderProfileMenu();
-      });
-      const rm = body.querySelector('#pm-remove');
-      if (rm) rm.addEventListener('click', async () => {
-        err.textContent = '';
-        if (!(await checkCurrent())) return;
-        p.pin = null; p.pinLen = 0;
-        saveProfiles(loadProfiles().map(x => (x.id === p.id ? p : x)));
-        showToast('PIN removed', 'This profile no longer asks for a PIN.');
-        renderProfileMenu();
-      });
+      wireCredFields(body, 'pm');
       body.querySelector('#pm-cancel').addEventListener('click', renderProfileMenu);
+      const err = body.querySelector('#pm-err');
+      body.querySelector('#pm-form').addEventListener('submit', async e => {
+        e.preventDefault(); err.textContent = '';
+        const c = readCred(body, 'pm'); if (c.error) { err.textContent = c.error; return; }
+        try {
+          const r = await api('POST', '/api/account/credential', { current: body.querySelector('#pm-cur').value, credType: c.type, credential: c.value });
+          if (!r.ok) { err.textContent = r.message || 'Sorry, that did not work.'; return; }
+          currentProfile.credType = r.user.credType; rememberUser(r.user);
+          showToast('Saved', 'Your new sign-in is ready. Other devices will ask you to sign in again.');
+          renderProfileMenu();
+        } catch (ex) { err.textContent = 'Cannot reach Golden Pace. Please check your internet connection.'; }
+      });
     }
-
-    function renderDeletePanel() {
-      const p = currentProfile;
+    function renderRecoveryPanel() {
       const body = profileBody();
       body.innerHTML = `
-        <h4 class="text-lg font-bold text-rose-800">Delete "${escapeHTML(p.name)}"?</h4>
-        <p class="text-lg text-warmgray-800">This permanently deletes every reading, meal, test result, badge and setting saved for this profile on this device. <strong>It cannot be undone.</strong></p>
-        <p class="text-base text-warmgray-600">Tip: save a backup first from the Vault menu if you might want these records again.</p>
-        ${p.pin ? '<div><label for="pm-del-pin" class="block font-bold mb-1">Type your PIN to confirm</label><input id="pm-del-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" class="w-full p-3 bg-warmgray-50 border border-warmgray-300 rounded-xl text-center tracking-widest"></div>' : ''}
-        <p id="pm-err" role="alert" class="text-lg font-bold text-rose-700 min-h-[1.5rem]"></p>
-        <button type="button" id="pm-del-go" class="w-full p-3.5 rounded-xl bg-rose-700 text-white font-bold">Yes, delete everything</button>
-        <button type="button" id="pm-cancel" class="w-full p-3 rounded-xl bg-warmgray-200 text-warmgray-900 font-bold">No, keep it</button>`;
-      const err = body.querySelector('#pm-err');
+        <h4 class="text-lg font-bold text-warmgray-900">Make a new recovery code</h4>
+        <p class="text-lg text-warmgray-800">Your old code will stop working. You will see the new one once, so have paper ready.</p>
+        <form id="pm-form" class="space-y-3" novalidate>
+          ${reauthField()}${MERR}
+          <button type="submit" class="w-full p-3.5 rounded-xl bg-brand-600 text-white font-bold">Make a new code</button>
+          <button type="button" id="pm-cancel" class="w-full p-3 rounded-xl bg-warmgray-200 text-warmgray-900 font-bold">Back</button>
+        </form>`;
       body.querySelector('#pm-cancel').addEventListener('click', renderProfileMenu);
-      body.querySelector('#pm-del-go').addEventListener('click', async () => {
-        if (p.pin) {
-          const v = body.querySelector('#pm-del-pin').value;
-          if (!/^\d{4,6}$/.test(v) || !(await verifyPin(p, v))) { err.textContent = 'The PIN is not right.'; return; }
-        }
-        if (!confirm(`Delete all records for "${p.name}"? This cannot be undone.`)) return;
-        await removeProfileData(p);
-        lockNow();
+      const err = body.querySelector('#pm-err');
+      body.querySelector('#pm-form').addEventListener('submit', async e => {
+        e.preventDefault(); err.textContent = '';
+        try {
+          const r = await api('POST', '/api/account/recovery', { current: body.querySelector('#pm-cur').value });
+          if (!r.ok) { err.textContent = r.message || 'Sorry, that did not work.'; return; }
+          closeProfileModal();
+          renderRecovery({ username: currentProfile.name }, r.recoveryCode, 'Your new recovery code', () => { hideGate(); });
+        } catch (ex) { err.textContent = 'Cannot reach Golden Pace. Please check your internet connection.'; }
+      });
+    }
+    function renderDeletePanel() {
+      const body = profileBody();
+      body.innerHTML = `
+        <h4 class="text-lg font-bold text-rose-800">Delete my account?</h4>
+        <p class="text-lg text-warmgray-800">This permanently deletes your account and every reading, meal, photo, test result and badge saved in it, on our server and on this device. <strong>It cannot be undone.</strong></p>
+        <p class="text-base text-warmgray-600">Tip: save a backup file first from the Vault menu if you might want these records again.</p>
+        <form id="pm-form" class="space-y-3" novalidate>
+          ${reauthField()}${MERR}
+          <button type="submit" class="w-full p-3.5 rounded-xl bg-rose-700 text-white font-bold">Yes, delete everything</button>
+          <button type="button" id="pm-cancel" class="w-full p-3 rounded-xl bg-warmgray-200 text-warmgray-900 font-bold">No, keep it</button>
+        </form>`;
+      body.querySelector('#pm-cancel').addEventListener('click', renderProfileMenu);
+      const err = body.querySelector('#pm-err');
+      body.querySelector('#pm-form').addEventListener('submit', async e => {
+        e.preventDefault(); err.textContent = '';
+        if (!confirm('Delete your account and all of its records? This cannot be undone.')) return;
+        try {
+          const r = await api('POST', '/api/account/delete', { current: body.querySelector('#pm-cur').value });
+          if (!r.ok) { err.textContent = r.message || 'Sorry, that did not work.'; return; }
+          await wipeDevice();
+          location.reload();
+        } catch (ex) { err.textContent = 'Cannot reach Golden Pace. Please check your internet connection.'; }
       });
     }
 
-    async function removeProfileData(p) {
-      try { if (db && currentProfile && currentProfile.id === p.id) db.close(); } catch (e) {}
-      try {
-        await Promise.race([Dexie.delete(p.dbName), new Promise(r => setTimeout(r, 4000))]);
-      } catch (e) { console.error('Could not delete database', e); }
-      saveProfiles(loadProfiles().filter(x => x.id !== p.id));
+    async function wipeDevice() {
+      const p = currentProfile;
+      try { if (db) db.close(); } catch (e) {}
+      try { await Promise.race([Dexie.delete('GoldenPace_u' + p.userId), new Promise(r => setTimeout(r, 4000))]); } catch (e) {}
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const k = localStorage.key(i);
         if (k && k.startsWith('golden_pace_') && k.endsWith('_' + p.id)) lsRemove(k);
       }
-      try { sessionStorage.removeItem(ACTIVE_KEY); } catch (e) {}
+      lsRemove(LAST_USER_KEY);
     }
-
-    /* ---- Auto-lock after time away (only for PIN-protected profiles) ---- */
-    let hiddenAt = 0;
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
-      if (hiddenAt && currentProfile && currentProfile.pin && Date.now() - hiddenAt > AUTO_LOCK_MS) lockNow();
-      hiddenAt = 0;
-    });
+    async function signOut(clearDevice) {
+      const dirty = lsGet(dirtyKey()) === '1';
+      if (clearDevice && !confirm('This removes your records from this phone or computer. They stay safe in your account. Continue?')) return;
+      if (dirty && navigator.onLine) { setSyncStatus('saving'); await syncNow(); }
+      if (clearDevice && lsGet(dirtyKey()) === '1' && !confirm('Some recent entries have NOT been saved to your account yet and will be lost. Sign out and remove them anyway?')) return;
+      try { await api('POST', '/api/logout', {}); } catch (e) {}
+      if (clearDevice) await wipeDevice(); else lsRemove(LAST_USER_KEY);
+      try { sessionStorage.clear(); } catch (e) {}
+      location.reload();
+    }
   </script>
 </body>
 </html>

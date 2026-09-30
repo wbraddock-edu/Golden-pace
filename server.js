@@ -335,6 +335,9 @@ function serveStatic(req, res, pathname) {
   fs.createReadStream(f.abs).pipe(res);
 }
 
+/* ---------------------------------------------------------------- accounts */
+const accounts = require('./accounts')({ dataDir: DATA_DIR, secret: SECRET, helpers: { json, readBody, clientIp } });
+
 /* ---------------------------------------------------------------- router */
 const server = http.createServer(async (req, res) => {
   try {
@@ -342,6 +345,7 @@ const server = http.createServer(async (req, res) => {
     const p = u.pathname, m = req.method;
     if (p === '/healthz') return send(res, 200, 'ok', { 'Content-Type': 'text/plain' });
     if (p === '/api/guide-status' && (m === 'GET' || m === 'HEAD')) return json(res, 200, { enabled: enabled() });
+    if (await accounts.handle(req, res, u)) return;
     if (p === '/api/subscribe') return m === 'POST' ? await subscribe(req, res) : json(res, 405, { ok: false });
     if (p === '/api/unsubscribe' && (m === 'GET' || m === 'POST')) return await unsubscribe(req, res, u.searchParams);
     if (p === '/guide/download' && (m === 'GET' || m === 'HEAD')) return download(req, res, u.searchParams);
@@ -350,11 +354,12 @@ const server = http.createServer(async (req, res) => {
     return serveStatic(req, res, p);
   } catch (err) {
     console.error('request error:', err.message);
+    if (!res.headersSent && err.status === 413) return json(res, 413, { ok: false, error: 'too_large' });
     if (!res.headersSent) send(res, 500, 'Something went wrong', { 'Content-Type': 'text/plain' });
   }
 });
 
 server.listen(PORT, () => {
-  console.log(`Golden Pace listening on ${PORT}. Data dir: ${DATA_DIR}. Guide emailing: ${enabled() ? 'ON' : 'OFF (set SMTP_* and MAIL_FROM)'}. Subscribers: ${records.length}.`);
+  console.log(`Golden Pace listening on ${PORT}. Data dir: ${DATA_DIR}. Guide emailing: ${enabled() ? 'ON' : 'OFF (set SMTP_* and MAIL_FROM)'}. Subscribers: ${records.length}. Accounts: ${accounts.count()}.`);
 });
 for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { writeChain.finally(() => server.close(() => process.exit(0))); setTimeout(() => process.exit(0), 5000).unref(); });

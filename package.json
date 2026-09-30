@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "description": "Golden Pace: the static site plus a tiny service that emails the free guide to people who ask for it.",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=20" },
-  "dependencies": { "nodemailer": "^10.0.13" }
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "nodemailer": "^10.0.13"
+  }
 }

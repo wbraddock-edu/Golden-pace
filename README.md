@@ -49,6 +49,16 @@ never part of this repository.
 ## Third-party libraries (all MIT licensed)
 Tailwind CSS (build only), Chart.js, Dexie.js, canvas-confetti.
 
+## Accounts and sync
+
+Signing in uses a username plus a password or PIN, created on the sign-in screen. Accounts, sign-in sessions, synced records and meal photos live in a SQLite database (`golden-pace.db`, Node's built-in `node:sqlite`, Node 22.13+) inside `DATA_DIR`. Put a persistent volume at `/data` or everything is lost on redeploy.
+
+- `accounts.js` holds the API: `/api/signup`, `/api/login`, `/api/logout`, `/api/reset` (recovery code), `/api/me`, `/api/account/*`, `/api/vault`, `/api/image/*`.
+- Passwords and PINs are hashed with HMAC (server secret) then scrypt. Five wrong tries lock an account for 15 minutes. Sessions are HttpOnly, SameSite cookies valid 30 days.
+- The app keeps a local Dexie copy for offline use and syncs a snapshot (plus meal photos by hash) to the account. Changes from two devices are merged by date/time/meal.
+- Keep `SIGNING_SECRET` (or `DATA_DIR/signing.key`) stable: changing it invalidates every password, PIN and recovery code.
+- The Gemini key is never sent to the server.
+
 ## Server and free-guide signup
 
 The site is served by `server.js` (Node 20+, one dependency: nodemailer). It serves the static app from an allow-list and adds the optional "free guide" email signup.
